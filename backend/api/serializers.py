@@ -41,9 +41,9 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 
 class RecipeSerializer(serializers.ModelSerializer):
     tags = serializers.PrimaryKeyRelatedField(many=True, queryset=Tag.objects.all())
-    ingredients = RecipeIngredientSerializer(many=True, source='recipe_ingredients')
+    ingredients = RecipeIngredientSerializer(many=True, write_only=True)
     author = serializers.SerializerMethodField()
-    image = serializers.SerializerMethodField()
+    image = Base64ImageField()
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
 
@@ -58,17 +58,9 @@ class RecipeSerializer(serializers.ModelSerializer):
         return {
             'id': obj.author.id,
             'username': obj.author.username,
-            'first_name': obj.author.first_name or obj.author.username,
-            'last_name': obj.author.last_name or '',
+            'first_name': obj.author.first_name,
+            'last_name': obj.author.last_name,
         }
-
-    def get_image(self, obj):
-        if obj.image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
-        return None
 
     def get_is_favorited(self, obj):
         request = self.context.get('request')
@@ -84,14 +76,15 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         tags = validated_data.pop('tags')
-        ingredients_data = validated_data.pop('recipe_ingredients')
+        ingredients_data = validated_data.pop('ingredients')
         recipe = Recipe.objects.create(**validated_data)
         recipe.tags.set(tags)
 
         for ingredient_data in ingredients_data:
             RecipeIngredient.objects.create(
                 recipe=recipe,
-                **ingredient_data
+                ingredient=ingredient_data['ingredient'],
+                amount=ingredient_data['amount']
             )
         return recipe
 

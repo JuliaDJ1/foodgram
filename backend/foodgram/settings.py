@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'api',
 
     'rest_framework',
+    'rest_framework.authtoken',
     'django_filters',
     'djoser',
 ]
@@ -68,7 +69,7 @@ AUTH_USER_MODEL = 'users.User'
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',   # временно для регистрации
+        'rest_framework.permissions.AllowAny',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
@@ -80,7 +81,7 @@ REST_FRAMEWORK = {
 
 DJOSER = {
     'LOGIN_FIELD': 'email',
-    'USER_CREATE_PASSWORD_RETYPE': True,
+    'USER_CREATE_PASSWORD_RETYPE': False,        # ← важно: False
     'USERNAME_CHANGED_EMAIL_CONFIRMATION': False,
     'PASSWORD_CHANGED_EMAIL_CONFIRMATION': False,
     'SEND_ACTIVATION_EMAIL': False,
@@ -97,6 +98,12 @@ DJOSER = {
     },
 }
 
+# === ИСПРАВЛЕНИЕ ===
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
+# ===================
+
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -108,7 +115,6 @@ USE_TZ = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ====================== CORS ======================
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "https://congenial-carnival-976rxgp5wqvpf7vrw-3000.app.github.dev",
@@ -116,7 +122,6 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = True
 
-# ====================== CSRF ======================
 CSRF_TRUSTED_ORIGINS = [
     "https://congenial-carnival-976rxgp5wqvpf7vrw-3000.app.github.dev",
     "http://localhost:3000",
@@ -124,6 +129,5 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
 ]
 
-# ====================== Для медиа в Codespaces ======================
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
