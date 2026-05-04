@@ -48,22 +48,20 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = self.get_object()
         if request.method == 'POST':
             Favorite.objects.get_or_create(user=request.user, recipe=recipe)
-            serializer = self.get_serializer(recipe)
-            return Response(serializer.data)
         else:
             Favorite.objects.filter(user=request.user, recipe=recipe).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        serializer = self.get_serializer(recipe)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['post', 'delete'], permission_classes=[permissions.IsAuthenticated])
     def shopping_cart(self, request, pk=None):
         recipe = self.get_object()
         if request.method == 'POST':
             ShoppingCart.objects.get_or_create(user=request.user, recipe=recipe)
-            serializer = self.get_serializer(recipe)
-            return Response(serializer.data)
         else:
             ShoppingCart.objects.filter(user=request.user, recipe=recipe).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        serializer = self.get_serializer(recipe)
+        return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def download_shopping_cart(self, request):
@@ -91,7 +89,6 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['put'], url_path='me/avatar')
     def avatar(self, request):
-        """PUT /api/users/me/avatar/"""
         user = request.user
         if 'avatar' in request.data:
             avatar_data = request.data['avatar']
@@ -112,14 +109,12 @@ class SubscriptionViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def subscriptions(self, request):
-        """GET /api/users/subscriptions/"""
         subscriptions = Subscription.objects.filter(user=request.user)
         serializer = SubscriptionSerializer(subscriptions, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['post', 'delete'])
     def subscribe(self, request, pk=None):
-        """POST/DELETE /api/users/{id}/subscribe/"""
         author = User.objects.get(pk=pk)
         if request.method == 'POST':
             Subscription.objects.get_or_create(user=request.user, author=author)
