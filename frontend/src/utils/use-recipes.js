@@ -28,7 +28,7 @@ export default function useRecipes () {
   }
 
   const handleAddToCart = ({ id, toAdd = true, callback }) => {
-    const method = toAdd ? api.addToOrders.bind(api) : api.removeFromOrders.bind(api)
+    const method = toAdd ? api.addToShoppingCart.bind(api) : api.removeFromShoppingCart.bind(api)
     method({ id }).then(res => {
       const recipesUpdated = recipes.map(recipe => {
         if (recipe.id === id) {
