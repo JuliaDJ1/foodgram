@@ -39,18 +39,40 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 
 
 class RecipeIngredientWriteSerializer(serializers.ModelSerializer):
-    id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
+    id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all(), source='ingredient')
 
     class Meta:
         model = RecipeIngredient
         fields = ('id', 'amount')
 
 
+class ShortRecipeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+
+
+class UserWithRecipesSerializer(serializers.ModelSerializer):
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'first_name', 'last_name', 'avatar', 'recipes', 'recipes_count')
+
+    def get_recipes(self, obj):
+        recipes_limit = self.context.get('recipes_limit', 3)
+        return ShortRecipeSerializer(obj.recipes.all()[:recipes_limit], many=True).data
+
+    def get_recipes_count(self, obj):
+        return obj.recipes.count()
+
+
 class RecipeSerializer(serializers.ModelSerializer):
     image = Base64ImageField()
     tags = serializers.PrimaryKeyRelatedField(many=True, queryset=Tag.objects.all())
-    ingredients = RecipeIngredientSerializer(many=True, read_only=True, source='recipe_ingredients')
-    ingredients_write = RecipeIngredientWriteSerializer(many=True, write_only=True)
+    # Фронтенд шлёт именно ingredients
+    ingredients = RecipeIngredientWriteSerializer(many=True, write_only=True)
     author = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
@@ -59,7 +81,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         model = Recipe
         fields = (
             'id', 'name', 'image', 'text', 'cooking_time', 'author',
-            'tags', 'ingredients', 'ingredients_write', 'is_favorited', 'is_in_shopping_cart'
+            'tags', 'ingredients', 'is_favorited', 'is_in_shopping_cart'
         )
 
     def get_author(self, obj):
@@ -68,6 +90,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             'username': obj.author.username,
             'first_name': obj.author.first_name,
             'last_name': obj.author.last_name,
+            'avatar': obj.author.avatar.url if obj.author.avatar else None,
         }
 
     def get_is_favorited(self, obj):
@@ -82,9 +105,16 @@ class RecipeSerializer(serializers.ModelSerializer):
             return ShoppingCart.objects.filter(user=request.user, recipe=obj).exists()
         return False
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['ingredients'] = RecipeIngredientSerializer(
+            instance.recipe_ingredients.all(), many=True
+        ).data
+        return representation
+
     def create(self, validated_data):
         tags = validated_data.pop('tags')
-        ingredients = validated_data.pop('ingredients_write')
+        ingredients = validated_data.pop('ingredients')
         recipe = Recipe.objects.create(**validated_data)
         recipe.tags.set(tags)
         self._create_ingredients(recipe, ingredients)
@@ -92,7 +122,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         tags = validated_data.pop('tags', None)
-        ingredients = validated_data.pop('ingredients_write', None)
+        ingredients = validated_data.pop('ingredients', None)
 
         instance = super().update(instance, validated_data)
 
@@ -109,7 +139,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         RecipeIngredient.objects.bulk_create([
             RecipeIngredient(
                 recipe=recipe,
-                ingredient=item['id'],
+                ingredient=item['ingredient'],
                 amount=item['amount']
             ) for item in ingredients
         ])
@@ -128,6 +158,8 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
+    author = UserWithRecipesSerializer(read_only=True)
+
     class Meta:
         model = Subscription
         fields = ('id', 'author')

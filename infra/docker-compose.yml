@@ -1,10 +1,31 @@
-version: '3.3'
+version: '3.8'
 
 services:
   frontend:
-    container_name: foodgram-front
     build: ../frontend
     volumes:
-      - ../frontend/:/app/result_build/
+      - ../frontend/build:/usr/share/nginx/html   # ← ИЗМЕНЕНО на build
+    restart: "no"
+
+  backend:
+    build: ../backend
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ../backend:/app
     ports:
-      - "80:80"
+      - "8000:8000"
+    depends_on:
+      - frontend
+    restart: always
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../frontend/build:/usr/share/nginx/html     # ← ИЗМЕНЕНО на build
+    depends_on:
+      - backend
+      - frontend
+    restart: always

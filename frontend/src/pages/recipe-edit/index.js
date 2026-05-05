@@ -20,6 +20,8 @@ import { Icons } from "../../components";
 import cn from "classnames";
 
 const RecipeEdit = ({ onItemDelete }) => {
+  console.log('=== RecipeEdit V3 LOADED ===');   // ← проверка, что новый код загрузился
+
   const { value, handleChange, setValue } = useTags();
   const [recipeName, setRecipeName] = useState("");
   const [ingredientValue, setIngredientValue] = useState({ name: "", id: null, amount: "", measurement_unit: "" });
@@ -36,7 +38,7 @@ const RecipeEdit = ({ onItemDelete }) => {
   const [ingredientError, setIngredientError] = useState("");
 
   const history = useHistory();
-  const { id: recipeId } = useParams();   // <-- исправлено
+  const { id: recipeId } = useParams();
 
   const handleAddIngredient = () => {
     if (ingredientValue.amount === "" || ingredientValue.name === "" || !ingredientValue.id) {
@@ -59,7 +61,7 @@ const RecipeEdit = ({ onItemDelete }) => {
   }, []);
 
   useEffect(() => {
-    if (value.length === 0 || !loading || !recipeId) return;
+    if (!recipeId) return;
     api.getRecipe({ recipe_id: recipeId })
       .then(res => {
         const { image, tags, cooking_time, name, ingredients, text } = res;
@@ -67,7 +69,13 @@ const RecipeEdit = ({ onItemDelete }) => {
         setRecipeName(name);
         setRecipeTime(cooking_time);
         setRecipeFile(image);
-        setRecipeIngredients(ingredients);
+        setRecipeIngredients(ingredients.map(item => ({
+          ...item,
+          id: item.id,
+          name: item.name,
+          amount: item.amount,
+          measurement_unit: item.measurement_unit
+        })));
 
         const tagsValueUpdated = value.map(item => {
           item.value = Boolean(tags.find(tag => tag.id === item.id));
@@ -77,14 +85,14 @@ const RecipeEdit = ({ onItemDelete }) => {
         setLoading(false);
       })
       .catch(() => history.push("/recipes"));
-  }, [value, recipeId]);
+  }, [recipeId]);
 
   const handleIngredientAutofill = ({ id, name, measurement_unit }) => {
     setIngredientValue({ ...ingredientValue, id, name, measurement_unit });
   };
 
   const checkIfDisabled = () => {
-    if (!recipeName || !recipeText || recipeIngredients.length === 0 || !recipeTime || !recipeFile) {
+    if (!recipeName || !recipeText || recipeIngredients.length === 0 || !recipeTime) {
       setSubmitError({ submitError: "Заполните все поля!" });
       return true;
     }
@@ -106,12 +114,24 @@ const RecipeEdit = ({ onItemDelete }) => {
           className={styles.form}
           onSubmit={(e) => {
             e.preventDefault();
+            console.log('=== SUBMIT DEBUG === recipeId =', recipeId);   // ← смотрим сюда
+            console.log('data перед отправкой:', {
+              ...{
+                text: recipeText,
+                name: recipeName,
+                ingredients: recipeIngredients.map(item => ({ id: item.id, amount: item.amount })),
+                tags: value.filter(item => item.value).map(item => item.id),
+                cooking_time: recipeTime,
+              },
+              ...(recipeFileWasManuallyChanged && recipeFile ? { image: recipeFile } : {})
+            });
+
             if (checkIfDisabled()) return;
 
             const data = {
               text: recipeText,
               name: recipeName,
-              ingredients_write: recipeIngredients.map(item => ({ id: item.id, amount: item.amount })),
+              ingredients: recipeIngredients.map(item => ({ id: item.id, amount: item.amount })),
               tags: value.filter(item => item.value).map(item => item.id),
               cooking_time: recipeTime,
             };
@@ -120,24 +140,25 @@ const RecipeEdit = ({ onItemDelete }) => {
               data.image = recipeFile;
             }
 
-            api.updateRecipe(data)
+            api.updateRecipe(recipeId, data)
               .then(() => history.push(`/recipes/${recipeId}`))
               .catch(err => {
-                console.error(err);
+                console.error('Ошибка сохранения:', err);
                 setSubmitError({ submitError: "Ошибка при сохранении" });
               });
           }}
         >
+          {/* весь JSX без изменений — оставляю как у тебя */}
           <Input label="Название рецепта" value={recipeName} onChange={e => setRecipeName(e.target.value)} className={styles.mb36} />
 
           <CheckboxGroup label="Теги" values={value} handleChange={handleChange} emptyText="Нет загруженных тегов" />
 
           <div className={styles.ingredients}>
             <div className={styles.ingredientsInputs}>
-              <Input label="Ингредиенты" placeholder="Начните вводить название" value={ingredientValue.name} onChange={e => setIngredientValue({...ingredientValue, name: e.target.value})} onFocus={() => setShowIngredients(true)} />
+              <Input label="Ингредиенты" placeholder="Начните вводить название" value={ingredientValue.name} onChange={e => setIngredientValue({ ...ingredientValue, name: e.target.value })} onFocus={() => setShowIngredients(true)} />
               <div className={styles.ingredientsAmountInputContainer}>
                 <p className={styles.amountText}>в количестве </p>
-                <Input value={ingredientValue.amount} onChange={e => setIngredientValue({...ingredientValue, amount: e.target.value})} type="number" />
+                <Input value={ingredientValue.amount} onChange={e => setIngredientValue({ ...ingredientValue, amount: e.target.value })} type="number" />
                 {ingredientValue.measurement_unit && <div className={styles.measurementUnit}>{ingredientValue.measurement_unit}</div>}
               </div>
               {showIngredients && ingredients.length > 0 && <IngredientsSearch ingredients={ingredients} onClick={handleIngredientAutofill} />}
