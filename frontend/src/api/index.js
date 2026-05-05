@@ -86,16 +86,16 @@ class Api {
     }).then(this.checkResponse);
   }
 
-  updateRecipe(data) {
+  // ← ИСПРАВЛЕННЫЙ МЕТОД (самое главное)
+  updateRecipe(recipeId, data) {
     const token = localStorage.getItem("token");
-    const { recipe_id, ...bodyData } = data;
-    return fetch(`/api/recipes/${recipe_id}/`, {
+    return fetch(`/api/recipes/${recipeId}/`, {
       method: "PATCH",
       headers: {
         ...this._headers,
         authorization: `Token ${token}`,
       },
-      body: JSON.stringify(bodyData),
+      body: JSON.stringify(data),
     }).then(this.checkResponse);
   }
 

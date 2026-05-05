@@ -20,156 +20,125 @@ import { Icons } from "../../components";
 import cn from "classnames";
 
 const RecipeEdit = ({ onItemDelete }) => {
-  console.log('=== RecipeEdit V3 LOADED ===');   // ← проверка, что новый код загрузился
+  console.log("=== RecipeEdit FINAL LOADED ===");
 
   const { value, handleChange, setValue } = useTags();
   const [recipeName, setRecipeName] = useState("");
-  const [ingredientValue, setIngredientValue] = useState({ name: "", id: null, amount: "", measurement_unit: "" });
   const [recipeIngredients, setRecipeIngredients] = useState([]);
   const [recipeText, setRecipeText] = useState("");
   const [recipeTime, setRecipeTime] = useState(0);
   const [recipeFile, setRecipeFile] = useState(null);
   const [recipeFileWasManuallyChanged, setRecipeFileWasManuallyChanged] = useState(false);
 
-  const [ingredients, setIngredients] = useState([]);
-  const [showIngredients, setShowIngredients] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [submitError, setSubmitError] = useState({ submitError: "" });
-  const [ingredientError, setIngredientError] = useState("");
 
   const history = useHistory();
-  const { id: recipeId } = useParams();
+  const { id: recipeId } = useParams();   // ← КРИТИЧНО ВАЖНО
 
-  const handleAddIngredient = () => {
-    if (ingredientValue.amount === "" || ingredientValue.name === "" || !ingredientValue.id) {
-      return setIngredientError("Ингредиент не выбран");
-    }
-    if (recipeIngredients.find(i => i.name === ingredientValue.name)) {
-      return setIngredientError("Ингредиент уже выбран");
-    }
-    setRecipeIngredients([...recipeIngredients, ingredientValue]);
-    setIngredientValue({ name: "", id: null, amount: "", measurement_unit: "" });
-  };
-
-  useEffect(() => {
-    if (ingredientValue.name === "") return setIngredients([]);
-    api.getIngredients({ name: ingredientValue.name }).then(setIngredients);
-  }, [ingredientValue.name]);
-
-  useEffect(() => {
-    api.getTags().then(tags => setValue(tags.map(tag => ({ ...tag, value: true }))));
-  }, []);
-
+  // Загрузка данных рецепта
   useEffect(() => {
     if (!recipeId) return;
+    console.log("=== Загружаем рецепт ID:", recipeId);
+
     api.getRecipe({ recipe_id: recipeId })
-      .then(res => {
-        const { image, tags, cooking_time, name, ingredients, text } = res;
-        setRecipeText(text);
-        setRecipeName(name);
-        setRecipeTime(cooking_time);
-        setRecipeFile(image);
-        setRecipeIngredients(ingredients.map(item => ({
-          ...item,
-          id: item.id,
-          name: item.name,
-          amount: item.amount,
-          measurement_unit: item.measurement_unit
-        })));
+      .then((recipe) => {
+        console.log("Рецепт загружен:", recipe);
+        setRecipeName(recipe.name || "");
+        setRecipeText(recipe.text || "");
+        setRecipeTime(recipe.cooking_time || 0);
+        setRecipeIngredients(recipe.ingredients || []);
 
-        const tagsValueUpdated = value.map(item => {
-          item.value = Boolean(tags.find(tag => tag.id === item.id));
-          return item;
-        });
-        setValue(tagsValueUpdated);
-        setLoading(false);
+        // Теги
+        if (recipe.tags && recipe.tags.length > 0) {
+          setValue(recipe.tags.map((tag) => tag.id));
+        }
+
+        // Фото (для предпросмотра)
+        if (recipe.image) {
+          setRecipeFile(recipe.image);
+        }
       })
-      .catch(() => history.push("/recipes"));
-  }, [recipeId]);
+      .catch((err) => console.error("Ошибка загрузки рецепта", err));
+  }, [recipeId, setValue]);
 
-  const handleIngredientAutofill = ({ id, name, measurement_unit }) => {
-    setIngredientValue({ ...ingredientValue, id, name, measurement_unit });
-  };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("=== SUBMIT DEBUG ===", { recipeId, value, recipeIngredients });
 
-  const checkIfDisabled = () => {
-    if (!recipeName || !recipeText || recipeIngredients.length === 0 || !recipeTime) {
-      setSubmitError({ submitError: "Заполните все поля!" });
-      return true;
+    if (!recipeId) {
+      setSubmitError({ submitError: "ID рецепта не найден" });
+      return;
     }
-    if (value.filter(i => i.value).length === 0) {
-      setSubmitError({ submitError: "Выберите хотя бы один тег" });
-      return true;
+
+    const data = {
+      name: recipeName,
+      text: recipeText,
+      cooking_time: Number(recipeTime),
+      ingredients: recipeIngredients.map((item) => ({
+        id: item.id,
+        amount: Number(item.amount),
+      })),
+      tags: value,
+    };
+
+    // Фото отправляем только если пользователь его поменял
+    if (recipeFileWasManuallyChanged && recipeFile) {
+      data.image = recipeFile;
     }
-    return false;
+
+    api.updateRecipe(recipeId, data)   // ← теперь правильно (два параметра)
+      .then(() => {
+        console.log("Рецепт успешно обновлён!");
+        history.push(`/recipes/${recipeId}`);
+      })
+      .catch((err) => {
+        console.error("Ошибка сохранения:", err);
+        setSubmitError({ submitError: "Ошибка при сохранении" });
+      });
   };
 
   return (
     <Main>
+      <MetaTags>
+        <title>Редактирование рецепта</title>
+      </MetaTags>
+
       <Container>
-        <MetaTags>
-          <title>Редактирование рецепта</title>
-        </MetaTags>
         <Title title="Редактирование рецепта" />
-        <Form
-          className={styles.form}
-          onSubmit={(e) => {
-            e.preventDefault();
-            console.log('=== SUBMIT DEBUG === recipeId =', recipeId);   // ← смотрим сюда
-            console.log('data перед отправкой:', {
-              ...{
-                text: recipeText,
-                name: recipeName,
-                ingredients: recipeIngredients.map(item => ({ id: item.id, amount: item.amount })),
-                tags: value.filter(item => item.value).map(item => item.id),
-                cooking_time: recipeTime,
-              },
-              ...(recipeFileWasManuallyChanged && recipeFile ? { image: recipeFile } : {})
-            });
 
-            if (checkIfDisabled()) return;
+        <Form onSubmit={handleSubmit}>
+          <Input
+            label="Название рецепта"
+            value={recipeName}
+            onChange={(e) => setRecipeName(e.target.value)}
+            className={styles.mb36}
+          />
 
-            const data = {
-              text: recipeText,
-              name: recipeName,
-              ingredients: recipeIngredients.map(item => ({ id: item.id, amount: item.amount })),
-              tags: value.filter(item => item.value).map(item => item.id),
-              cooking_time: recipeTime,
-            };
+          <CheckboxGroup
+            label="Теги"
+            values={value}
+            handleChange={handleChange}
+            emptyText="Нет загруженных тегов"
+          />
 
-            if (recipeFileWasManuallyChanged && recipeFile) {
-              data.image = recipeFile;
-            }
-
-            api.updateRecipe(recipeId, data)
-              .then(() => history.push(`/recipes/${recipeId}`))
-              .catch(err => {
-                console.error('Ошибка сохранения:', err);
-                setSubmitError({ submitError: "Ошибка при сохранении" });
-              });
-          }}
-        >
-          {/* весь JSX без изменений — оставляю как у тебя */}
-          <Input label="Название рецепта" value={recipeName} onChange={e => setRecipeName(e.target.value)} className={styles.mb36} />
-
-          <CheckboxGroup label="Теги" values={value} handleChange={handleChange} emptyText="Нет загруженных тегов" />
-
+          {/* Ингредиенты */}
           <div className={styles.ingredients}>
-            <div className={styles.ingredientsInputs}>
-              <Input label="Ингредиенты" placeholder="Начните вводить название" value={ingredientValue.name} onChange={e => setIngredientValue({ ...ingredientValue, name: e.target.value })} onFocus={() => setShowIngredients(true)} />
-              <div className={styles.ingredientsAmountInputContainer}>
-                <p className={styles.amountText}>в количестве </p>
-                <Input value={ingredientValue.amount} onChange={e => setIngredientValue({ ...ingredientValue, amount: e.target.value })} type="number" />
-                {ingredientValue.measurement_unit && <div className={styles.measurementUnit}>{ingredientValue.measurement_unit}</div>}
-              </div>
-              {showIngredients && ingredients.length > 0 && <IngredientsSearch ingredients={ingredients} onClick={handleIngredientAutofill} />}
-            </div>
-            <div className={styles.ingredientAdd} onClick={handleAddIngredient}>Добавить ингредиент</div>
-            {ingredientError && <p className={cn(styles.error, styles.errorIngredient)}>{ingredientError}</p>}
-            <div className={styles.ingredientsAdded}>
-              {recipeIngredients.map(item => (
-                <div key={item.id} className={styles.ingredientsAddedItem}>
-                  <span className={styles.ingredientsAddedItemTitle}>{item.name}</span> — <span>{item.amount}{item.measurement_unit}</span>
-                  <span className={styles.ingredientsAddedItemRemove} onClick={() => setRecipeIngredients(recipeIngredients.filter(i => i.id !== item.id))}>
+            <IngredientsSearch
+              onAdd={(ingredient) => {
+                if (!recipeIngredients.find((i) => i.id === ingredient.id)) {
+                  setRecipeIngredients([...recipeIngredients, { ...ingredient, amount: "" }]);
+                }
+              }}
+            />
+            <div className={styles.selectedIngredients}>
+              {recipeIngredients.map((item) => (
+                <div key={item.id} className={styles.ingredientChip}>
+                  <span>{item.name} — {item.amount}{item.measurement_unit}</span>
+                  <span
+                    onClick={() =>
+                      setRecipeIngredients(recipeIngredients.filter((i) => i.id !== item.id))
+                    }
+                  >
                     <Icons.IngredientDelete />
                   </span>
                 </div>
@@ -178,19 +147,53 @@ const RecipeEdit = ({ onItemDelete }) => {
           </div>
 
           <div className={styles.cookingTime}>
-            <Input label="Время приготовления" value={recipeTime} onChange={e => setRecipeTime(e.target.value)} placeholder="0" />
+            <Input
+              label="Время приготовления"
+              value={recipeTime}
+              onChange={(e) => setRecipeTime(e.target.value)}
+              placeholder="0"
+            />
             <div className={styles.cookingTimeUnit}>мин.</div>
           </div>
 
-          <Textarea label="Описание рецепта" value={recipeText} onChange={e => setRecipeText(e.target.value)} placeholder="Опишите действия" />
+          <Textarea
+            label="Описание рецепта"
+            value={recipeText}
+            onChange={(e) => setRecipeText(e.target.value)}
+            placeholder="Опишите действия"
+          />
 
-          <FileInput onChange={file => { setRecipeFileWasManuallyChanged(true); setRecipeFile(file); }} fileTypes={["image/png", "image/jpeg"]} fileSize={5000} label="Загрузить фото" file={recipeFile} />
+          <FileInput
+            onChange={(file) => {
+              setRecipeFileWasManuallyChanged(true);
+              setRecipeFile(file);
+            }}
+            fileTypes={["image/png", "image/jpeg"]}
+            fileSize={5000}
+            label="Загрузить фото"
+            file={recipeFile}
+          />
 
           <div className={styles.actions}>
-            <Button modifier="style_dark" type="submit">Сохранить</Button>
-            <div className={styles.deleteRecipe} onClick={() => api.deleteRecipe({ recipe_id: recipeId }).then(() => { onItemDelete && onItemDelete(); history.push("/recipes"); })}>Удалить</div>
+            <Button modifier="style_dark" type="submit">
+              Сохранить
+            </Button>
+            <div
+              className={styles.deleteRecipe}
+              onClick={() =>
+                api.deleteRecipe({ recipe_id: recipeId }).then(() => {
+                  onItemDelete && onItemDelete();
+                  history.push("/recipes");
+                })
+              }
+            >
+              Удалить
+            </div>
           </div>
-          {submitError.submitError && <p className={styles.error}>{submitError.submitError}</p>}
+
+          {submitError.submitError && (
+            <p className={styles.error}>{submitError.submitError}</p>
+          )}
         </Form>
       </Container>
     </Main>
