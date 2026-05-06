@@ -74,7 +74,7 @@ function App() {
 
   const changeAvatar = ({ file }) => {
     api
-      .changeAvatar({ file })
+      .changeAvatar(file)
       .then((res) => {
         setUser({ ...user, avatar: res.avatar });
         history.push(`/recipes`);
@@ -141,12 +141,6 @@ function App() {
       });
   };
 
-  const loadSingleItem = ({ id, callback }) => {
-    setTimeout((_) => {
-      callback();
-    }, 3000);
-  };
-
   const history = useHistory();
   const onSignOut = () => {
     api
@@ -171,32 +165,33 @@ function App() {
       })
       .then((res) => {
         const { count } = res;
-        setOrders(count);
-      });
+        setOrders(count || 0);
+      })
+      .catch(() => setOrders(0));
   };
 
-  const updateOrders = (add) => {
-    if (!add && orders <= 0) {
-      return;
-    }
-    if (add) {
-      setOrders(orders + 1);
-    } else {
-      setOrders(orders - 1);
+  // ← ИСПРАВЛЕННАЯ ФУНКЦИЯ
+  const updateOrders = (value) => {
+    if (typeof value === 'number') {
+      // Абсолютное количество из Cart
+      setOrders(value);
+    } else if (typeof value === 'boolean') {
+      // Вызов из главных страниц (true = добавить, false = убрать)
+      setOrders(prev => value ? prev + 1 : Math.max(0, prev - 1));
     }
   };
 
-  useEffect((_) => {
+  useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      return api
+      api
         .getUserData()
         .then((res) => {
           setUser(res);
           setLoggedIn(true);
           getOrders();
         })
-        .catch((err) => {
+        .catch(() => {
           setLoggedIn(false);
           history.push("/recipes");
         });
@@ -215,17 +210,11 @@ function App() {
         <div className="App">
           <Header orders={orders} loggedIn={loggedIn} onSignOut={onSignOut} />
           <Switch>
-            <Route
-              exact
-              path="/user/:id"
-              component={User}
-              updateOrders={updateOrders}
-            />
+            <Route exact path="/user/:id" component={User} />
             <ProtectedRoute
               exact
               path="/cart"
               component={Cart}
-              orders={orders}
               loggedIn={loggedIn}
               updateOrders={updateOrders}
             />
@@ -235,7 +224,6 @@ function App() {
               component={Subscriptions}
               loggedIn={loggedIn}
             />
-
             <ProtectedRoute
               exact
               path="/favorites"
@@ -243,21 +231,17 @@ function App() {
               loggedIn={loggedIn}
               updateOrders={updateOrders}
             />
-
             <ProtectedRoute
               exact
               path="/recipes/create"
               component={RecipeCreate}
               loggedIn={loggedIn}
             />
-
             <ProtectedRoute
               exact
               path="/recipes/:id/edit"
               component={RecipeEdit}
               loggedIn={loggedIn}
-              loadItem={loadSingleItem}
-              onItemDelete={getOrders}
             />
             <ProtectedRoute
               exact
@@ -268,7 +252,6 @@ function App() {
               setSubmitError={setChangePasswordError}
               onPasswordChange={changePassword}
             />
-
             <ProtectedRoute
               exact
               path="/change-avatar"
@@ -276,31 +259,21 @@ function App() {
               loggedIn={loggedIn}
               onAvatarChange={changeAvatar}
             />
-
             <Route exact path="/recipes/:id">
-              <SingleCard
-                loggedIn={loggedIn}
-                loadItem={loadSingleItem}
-                updateOrders={updateOrders}
-              />
+              <SingleCard loggedIn={loggedIn} updateOrders={updateOrders} />
             </Route>
-
             <Route exact path="/about">
               <About />
             </Route>
-
             <Route exact path="/reset-password">
               <ResetPassword onPasswordReset={onPasswordReset} />
             </Route>
-
             <Route exact path="/technologies">
               <Technologies />
             </Route>
-
             <Route exact path="/recipes">
               <Main updateOrders={updateOrders} />
             </Route>
-
             <Route exact path="/signin">
               <SignIn
                 onSignIn={authorization}

@@ -11,11 +11,19 @@ const Cart = ({ updateOrders }) => {
     api
       .getRecipes({
         page: 1,
-        limit: 999,
+        limit: 999,                    // ← большой лимит, чтобы получить всё
         is_in_shopping_cart: 1
       })
-      .then(res => setRecipes(res.results || []))
-      .catch(err => console.error(err))
+      .then((res) => {
+        const results = res.results || []
+        setRecipes(results)
+        
+        // ← ИСПРАВЛЕНИЕ: передаём реальное количество, а не длину страницы
+        if (updateOrders) {
+          updateOrders(res.count !== undefined ? res.count : results.length)
+        }
+      })
+      .catch((err) => console.error('Ошибка загрузки корзины:', err))
   }
 
   useEffect(() => {
@@ -24,8 +32,7 @@ const Cart = ({ updateOrders }) => {
 
   const handleRemoveFromCart = (id) => {
     api.removeFromShoppingCart({ id }).then(() => {
-      getRecipes()
-      updateOrders && updateOrders()
+      getRecipes()                    // ← перезагружаем список + счётчик
     })
   }
 
