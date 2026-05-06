@@ -42,12 +42,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
         user = self.request.user
 
-        # Фронтенд шлёт 0 или 1
         is_favorited = self.request.query_params.get('is_favorited')
         is_in_shopping_cart = self.request.query_params.get('is_in_shopping_cart')
 
+        # ← ИСПРАВЛЕНИЕ: правильный related_name = 'favorites'
         if is_favorited in ('1', 'true') and user.is_authenticated:
-            queryset = queryset.filter(favorite__user=user)
+            queryset = queryset.filter(favorites__user=user)
 
         if is_in_shopping_cart in ('1', 'true') and user.is_authenticated:
             queryset = queryset.filter(shopping_cart__user=user)

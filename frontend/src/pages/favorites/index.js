@@ -1,6 +1,5 @@
-import { Card, Title, Pagination, CardList, Container, Main, CheckboxGroup  } from '../../components'
-import styles from './styles.module.css'
-import { useRecipes } from '../../utils/index.js'
+import { CardList, Title, Container, Main, Card } from '../../components'
+import { useRecipes } from '../../utils'
 import { useEffect } from 'react'
 import api from '../../api'
 import MetaTags from 'react-meta-tags'
@@ -9,74 +8,53 @@ const Favorites = ({ updateOrders }) => {
   const {
     recipes,
     setRecipes,
-    recipesCount,
-    setRecipesCount,
-    recipesPage,
-    setRecipesPage,
-    tagsValue,
-    handleTagsChange,
-    setTagsValue,
     handleLike,
     handleAddToCart
   } = useRecipes()
-  
-  const getRecipes = ({ page = 1, tags }) => {
+
+  const getRecipes = () => {
     api
-      .getRecipes({ page, is_favorited: Number(true), tags })
-      .then(res => {
-        const { results, count } = res
-        setRecipes(results)
-        setRecipesCount(count)
+      .getRecipes({
+        page: 1,
+        limit: 999,
+        is_favorited: 1
       })
+      .then(res => {
+        const { results } = res
+        setRecipes(results)
+      })
+      .catch(err => console.error('Ошибка загрузки избранного:', err))
   }
 
-  useEffect(_ => {
-    getRecipes({ page: recipesPage, tags: tagsValue })
-  }, [recipesPage, tagsValue])
-
-  useEffect(_ => {
-    api.getTags()
-      .then(tags => {
-        setTagsValue(tags.map(tag => ({ ...tag, value: true })))
-      })
+  useEffect(() => {
+    getRecipes()
   }, [])
 
-
-  return <Main>
-    <Container>
-      <MetaTags>
-        <title>Избранное</title>
-        <meta name="description" content="Фудграм - Избранное" />
-        <meta property="og:title" content="Избранное" />
-      </MetaTags>
-      <div className={styles.title}>
-        <Title title='Избранное' />
-        <CheckboxGroup
-          values={tagsValue}
-          handleChange={value => {
-            setRecipesPage(1)
-            handleTagsChange(value)
-          }}
-        />
-      </div>
-      {recipes.length > 0 && <CardList>
-        {recipes.map(card => <Card
-          {...card}
-          key={card.id}
-          updateOrders={updateOrders}
-          handleLike={handleLike}
-          handleAddToCart={handleAddToCart}
-        />)}
-      </CardList>}
-      <Pagination
-        count={recipesCount}
-        limit={6}
-        page={recipesPage}
-        onPageChange={page => setRecipesPage(page)}
-      />
-    </Container>
-  </Main>
+  return (
+    <Main>
+      <Container>
+        <MetaTags>
+          <title>Избранное</title>
+        </MetaTags>
+        <Title title="Избранное" />
+        {recipes.length > 0 ? (
+          <CardList>
+            {recipes.map(card => (
+              <Card
+                key={card.id}
+                {...card}
+                updateOrders={updateOrders}
+                handleLike={handleLike}
+                handleAddToCart={handleAddToCart}
+              />
+            ))}
+          </CardList>
+        ) : (
+          <p>В избранном пока ничего нет</p>
+        )}
+      </Container>
+    </Main>
+  )
 }
 
 export default Favorites
-
