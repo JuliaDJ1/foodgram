@@ -26,10 +26,7 @@ class Api {
     const token = localStorage.getItem("token");
     return fetch("/api/auth/token/logout/", {
       method: "POST",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
+      headers: { ...this._headers, authorization: `Token ${token}` },
     }).then(this.checkResponse);
   }
 
@@ -45,10 +42,7 @@ class Api {
     const token = localStorage.getItem("token");
     return fetch("/api/users/me/", {
       method: "GET",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
+      headers: { ...this._headers, authorization: `Token ${token}` },
     }).then(this.checkResponse);
   }
 
@@ -60,17 +54,18 @@ class Api {
       is_favorited: params.is_favorited || 0,
       is_in_shopping_cart: params.is_in_shopping_cart || 0,
     }).toString();
-    return fetch(`/api/recipes/?${query}`, { headers: this._headers }).then(this.checkResponse);
+    const token = localStorage.getItem("token");
+    const headers = token 
+      ? { ...this._headers, authorization: `Token ${token}` }
+      : this._headers;
+    return fetch(`/api/recipes/?${query}`, { headers }).then(this.checkResponse);
   }
 
   getRecipe = ({ recipe_id }) => {
     const token = localStorage.getItem("token");
     return fetch(`/api/recipes/${recipe_id}/`, {
       method: "GET",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
+      headers: { ...this._headers, authorization: `Token ${token}` },
     }).then(this.checkResponse);
   }
 
@@ -78,10 +73,7 @@ class Api {
     const token = localStorage.getItem("token");
     return fetch("/api/recipes/", {
       method: "POST",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
+      headers: { ...this._headers, authorization: `Token ${token}` },
       body: JSON.stringify(data),
     }).then(this.checkResponse);
   }
@@ -90,10 +82,7 @@ class Api {
     const token = localStorage.getItem("token");
     return fetch(`/api/recipes/${recipeId}/`, {
       method: "PATCH",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
+      headers: { ...this._headers, authorization: `Token ${token}` },
       body: JSON.stringify(data),
     }).then(this.checkResponse);
   }
@@ -102,10 +91,7 @@ class Api {
     const token = localStorage.getItem("token");
     return fetch(`/api/recipes/${recipe_id}/`, {
       method: "DELETE",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
+      headers: { ...this._headers, authorization: `Token ${token}` },
     }).then(this.checkResponse);
   }
 
@@ -114,10 +100,7 @@ class Api {
     const token = localStorage.getItem("token");
     return fetch(`/api/recipes/${id}/favorite/`, {
       method: "POST",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
+      headers: { ...this._headers, authorization: `Token ${token}` },
     }).then(this.checkResponse);
   }
 
@@ -125,10 +108,7 @@ class Api {
     const token = localStorage.getItem("token");
     return fetch(`/api/recipes/${id}/favorite/`, {
       method: "DELETE",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
+      headers: { ...this._headers, authorization: `Token ${token}` },
     }).then(this.checkResponse);
   }
 
@@ -137,10 +117,7 @@ class Api {
     const token = localStorage.getItem("token");
     return fetch(`/api/recipes/${id}/shopping_cart/`, {
       method: "POST",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
+      headers: { ...this._headers, authorization: `Token ${token}` },
     }).then(this.checkResponse);
   }
 
@@ -148,10 +125,7 @@ class Api {
     const token = localStorage.getItem("token");
     return fetch(`/api/recipes/${id}/shopping_cart/`, {
       method: "DELETE",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
+      headers: { ...this._headers, authorization: `Token ${token}` },
     }).then(this.checkResponse);
   }
 
@@ -159,10 +133,7 @@ class Api {
     const token = localStorage.getItem("token");
     return fetch("/api/recipes/download_shopping_cart/", {
       method: "GET",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
+      headers: { ...this._headers, authorization: `Token ${token}` },
     }).then(res => {
       if (res.ok) {
         return res.blob().then(blob => {
@@ -184,10 +155,7 @@ class Api {
     const token = localStorage.getItem("token");
     return fetch(`/api/users/${id}/subscribe/`, {
       method: "POST",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
+      headers: { ...this._headers, authorization: `Token ${token}` },
     }).then(this.checkResponse);
   }
 
@@ -195,10 +163,7 @@ class Api {
     const token = localStorage.getItem("token");
     return fetch(`/api/users/${id}/subscribe/`, {
       method: "DELETE",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
+      headers: { ...this._headers, authorization: `Token ${token}` },
     }).then(this.checkResponse);
   }
 
@@ -206,10 +171,15 @@ class Api {
     const token = localStorage.getItem("token");
     return fetch("/api/users/subscriptions/", {
       method: "GET",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
+      headers: { ...this._headers, authorization: `Token ${token}` },
+    }).then(this.checkResponse);
+  }
+
+  // Ingredients
+  getIngredients = ({ name }) => {
+    return fetch(`/api/ingredients/?name=${name}`, {
+      method: "GET",
+      headers: this._headers,
     }).then(this.checkResponse);
   }
 
@@ -227,9 +197,7 @@ class Api {
     formData.append("avatar", file);
     return fetch("/api/users/me/avatar/", {
       method: "PUT",
-      headers: {
-        authorization: `Token ${token}`,
-      },
+      headers: { authorization: `Token ${token}` },
       body: formData,
     }).then(this.checkResponse);
   }
