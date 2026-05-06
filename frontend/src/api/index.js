@@ -48,17 +48,29 @@ class Api {
 
   // Recipes
   getRecipes = (params = {}) => {
-    const query = new URLSearchParams({
+    const queryParams = {
       page: params.page || 1,
       limit: params.limit || 6,
       is_favorited: params.is_favorited || 0,
       is_in_shopping_cart: params.is_in_shopping_cart || 0,
-    }).toString();
+    };
+
+    // ← КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: поддержка фильтра по тегам
+    if (params.tags !== undefined && params.tags !== null) {
+      queryParams.tags = params.tags;
+    }
+
+    const query = new URLSearchParams(queryParams).toString();
+
     const token = localStorage.getItem("token");
     const headers = token 
       ? { ...this._headers, authorization: `Token ${token}` }
       : this._headers;
-    return fetch(`/api/recipes/?${query}`, { headers }).then(this.checkResponse);
+
+    return fetch(`/api/recipes/?${query}`, { 
+      method: "GET",
+      headers 
+    }).then(this.checkResponse);
   }
 
   getRecipe = ({ recipe_id }) => {
@@ -175,7 +187,7 @@ class Api {
     }).then(this.checkResponse);
   }
 
-  // Ingredients
+  // Ingredients & Tags
   getIngredients = ({ name }) => {
     return fetch(`/api/ingredients/?name=${name}`, {
       method: "GET",

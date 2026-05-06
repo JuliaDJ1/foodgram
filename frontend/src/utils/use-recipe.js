@@ -23,6 +23,7 @@ export default function useRecipe () {
     })
   }
 
+  // ← ИСПРАВЛЕННЫЙ handleSubscribe
   const handleSubscribe = ({ author_id, toSubscribe = true }) => {
     const method = toSubscribe ? api.subscribe : api.unsubscribe
     method({ id: author_id }).then(() => {

@@ -36,7 +36,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     serializer_class = RecipeSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['tags']
+    # filterset_fields = ['tags']  ← УДАЛЕНО, чтобы не конфликтовало
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -44,13 +44,24 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         is_favorited = self.request.query_params.get('is_favorited')
         is_in_shopping_cart = self.request.query_params.get('is_in_shopping_cart')
+        tags = self.request.query_params.get('tags')
 
-        # ← ИСПРАВЛЕНИЕ: правильный related_name = 'favorites'
+        # Фильтр избранное
         if is_favorited in ('1', 'true') and user.is_authenticated:
             queryset = queryset.filter(favorites__user=user)
 
+        # Фильтр корзина
         if is_in_shopping_cart in ('1', 'true') and user.is_authenticated:
             queryset = queryset.filter(shopping_cart__user=user)
+
+        # Фильтр по тегам (поддержка нескольких через запятую)
+        if tags:
+            try:
+                tag_ids = [int(t.strip()) for t in tags.split(',') if t.strip().isdigit()]
+                if tag_ids:
+                    queryset = queryset.filter(tags__id__in=tag_ids)
+            except ValueError:
+                pass
 
         return queryset.distinct()
 
