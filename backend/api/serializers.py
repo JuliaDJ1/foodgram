@@ -61,10 +61,11 @@ class UserWithRecipesSerializer(serializers.ModelSerializer):
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
+    is_subscribed = serializers.SerializerMethodField()   # ← Добавлено
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'avatar', 'recipes', 'recipes_count')
+        fields = ('id', 'username', 'first_name', 'last_name', 'avatar', 'recipes', 'recipes_count', 'is_subscribed')
 
     def get_recipes(self, obj):
         recipes_limit = self.context.get('recipes_limit', 3)
@@ -75,6 +76,12 @@ class UserWithRecipesSerializer(serializers.ModelSerializer):
 
     def get_avatar(self, obj):
         return obj.avatar.url if obj.avatar else None
+
+    def get_is_subscribed(self, obj):                     # ← Добавлено
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return Subscription.objects.filter(user=request.user, author=obj).exists()
+        return False
 
 
 class RecipeSerializer(serializers.ModelSerializer):
@@ -93,7 +100,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         )
 
     def get_author(self, obj):
-        return UserWithRecipesSerializer(obj.author).data
+        return UserWithRecipesSerializer(obj.author, context=self.context).data   # ← context добавлен
 
     def get_is_favorited(self, obj):
         request = self.context.get('request')

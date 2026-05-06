@@ -1,4 +1,4 @@
-import { Title, Pagination, Container, Main, SubscriptionList  } from '../../components'
+import { Title, Container, Main, SubscriptionList } from '../../components'
 import { useSubscriptions } from '../../utils'
 import api from '../../api'
 import { useEffect } from 'react'
@@ -8,50 +8,36 @@ const SubscriptionsPage = () => {
   const {
     subscriptions,
     setSubscriptions,
-    subscriptionsCount,
-    setSubscriptionsCount,
     removeSubscription,
     subscriptionsPage,
     setSubscriptionsPage
   } = useSubscriptions()
 
-  const getSubscriptions = ({ page }) => {
-    api
-      .getSubscriptions({ page })
+  const getSubscriptions = () => {
+    api.getSubscriptions()
       .then(res => {
-        setSubscriptions(res.results)
-        setSubscriptionsCount(res.count)
+        setSubscriptions(res)
       })
   }
 
-  useEffect(_ => {
-    getSubscriptions({ page: subscriptionsPage })
-  }, [subscriptionsPage])
+  useEffect(() => {
+    getSubscriptions()
+  }, [])
 
-
-  return <Main>
-    <Container>
-      <MetaTags>
-        <title>Мои подписки</title>
-        <meta name="description" content="Фудграм - Мои подписки" />
-        <meta property="og:title" content="Мои подписки" />
-      </MetaTags>
-      <Title
-        title='Мои подписки'
-      />
-      <SubscriptionList
-        subscriptions={subscriptions}
-        removeSubscription={removeSubscription}
-      />
-      <Pagination
-        count={subscriptionsCount}
-        limit={6}
-        onPageChange={page => {
-          setSubscriptionsPage(page)
-        }}
-      />
-    </Container>
-  </Main>
+  return (
+    <Main>
+      <Container>
+        <MetaTags>
+          <title>Мои подписки</title>
+        </MetaTags>
+        <Title title='Мои подписки' />
+        <SubscriptionList
+          subscriptions={subscriptions}
+          removeSubscription={removeSubscription}
+        />
+      </Container>
+    </Main>
+  )
 }
 
 export default SubscriptionsPage

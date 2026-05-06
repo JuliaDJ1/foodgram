@@ -16,7 +16,6 @@ const SingleCard = ({ updateOrders }) => {
   const [notificationPosition, setNotificationPosition] = useState("-100%");
   const { recipe, setRecipe, handleLike, handleAddToCart, handleSubscribe } = useRecipe();
   const authContext = useContext(AuthContext);
-  const userContext = useContext(UserContext);
   const { id } = useParams();
   const history = useHistory();
 
@@ -45,6 +44,8 @@ const SingleCard = ({ updateOrders }) => {
     is_in_shopping_cart
   } = recipe || {};
 
+  const isSubscribed = author.is_subscribed || false;
+
   return (
     <Main>
       <Container>
@@ -72,8 +73,9 @@ const SingleCard = ({ updateOrders }) => {
             <div className={styles["single-card__extra-info"]}>
               <TagsContainer tags={tags} />
               <p className={styles["single-card__text"]}>{cooking_time} мин.</p>
-              <p className={styles["single-card__text_with_link"]}>
-                <div className={styles["single-card__text"]}>
+
+              <div className={styles["single-card__author-block"]}>
+                <div className={styles["single-card__text_with_link"]}>
                   <div
                     className={styles["single-card__user-avatar"]}
                     style={{ backgroundImage: `url(${author.avatar || DefaultImage})` }}
@@ -84,7 +86,38 @@ const SingleCard = ({ updateOrders }) => {
                     className={styles["single-card__link"]}
                   />
                 </div>
-              </p>
+
+                {authContext && (
+                  <button
+                    style={{
+                      padding: "12px 24px",
+                      fontSize: "16px",
+                      backgroundColor: isSubscribed ? "#000" : "#fff",
+                      color: isSubscribed ? "#fff" : "#000",
+                      border: "2px solid #000",
+                      borderRadius: "8px",
+                      cursor: "pointer"
+                    }}
+                    onClick={() => {
+                      console.log("🔥 Клик по кнопке подписки ДОШЁЛ!");
+                      console.log("isSubscribed перед:", isSubscribed);
+
+                      // Только optimistic — без refetch (чтобы не слетало)
+                      setRecipe(prev => ({
+                        ...prev,
+                        author: { ...prev.author, is_subscribed: !isSubscribed }
+                      }));
+
+                      handleSubscribe({
+                        author_id: author.id,
+                        toSubscribe: !isSubscribed
+                      });
+                    }}
+                  >
+                    {isSubscribed ? "Отписаться" : "Подписаться на автора"}
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className={styles["single-card__buttons"]}>
@@ -92,13 +125,7 @@ const SingleCard = ({ updateOrders }) => {
                 <Button
                   className={cn(styles["single-card__button"], styles["single-card__button_add-receipt"])}
                   modifier="style_dark"
-                  clickHandler={() => {
-                    handleAddToCart({
-                      id,
-                      toAdd: !is_in_shopping_cart,
-                      callback: updateOrders,
-                    });
-                  }}
+                  clickHandler={() => handleAddToCart({ id, toAdd: !is_in_shopping_cart, callback: updateOrders })}
                 >
                   {is_in_shopping_cart ? (
                     <>
