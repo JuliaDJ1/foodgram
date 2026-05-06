@@ -21,7 +21,26 @@ const Card = ({
 }) => {
   const authContext = useContext(AuthContext);
   const [toLogin, setToLogin] = useState(false);
-  const [whiteSpaceValue, setWhiteSpaceValue] = useState("nowrap");
+
+  const onLikeClick = () => {
+    if (!authContext) {
+      setToLogin(true);
+      return;
+    }
+    handleLike({ id, toLike: !is_favorited });
+  };
+
+  const onCartClick = () => {
+    if (!authContext) {
+      setToLogin(true);
+      return;
+    }
+    handleAddToCart({
+      id,
+      toAdd: !is_in_shopping_cart,
+      callback: updateOrders,
+    });
+  };
 
   return (
     <div className={styles.card}>
@@ -34,11 +53,10 @@ const Card = ({
               сохранить рецепт
             </>
           }
-          onClose={() => {
-            setToLogin(false);
-          }}
+          onClose={() => setToLogin(false)}
         />
       )}
+
       <TagsContainer tags={tags} className={styles.card__tag} />
 
       <LinkComponent
@@ -50,24 +68,19 @@ const Card = ({
           />
         }
       />
+
       <div className={styles.card__body}>
         <LinkComponent
           className={styles.card__title}
           href={`/recipes/${id}`}
           title={name}
-          style={{ whiteSpace: whiteSpaceValue }}
-          onMouseEnter={() => {
-            setWhiteSpaceValue("normal");
-          }}
-          onMouseLeave={() => {
-            setWhiteSpaceValue("nowrap");
-          }}
         />
+
         <div className={styles.card__data}>
           <div
             className={styles["card__author-image"]}
             style={{
-              "background-image": `url(${author.avatar || DefaultImage})`,
+              backgroundImage: `url(${author.avatar || DefaultImage})`,
             }}
           />
           <div className={styles.card__author}>
@@ -79,19 +92,11 @@ const Card = ({
           </div>
           <div className={styles.card__time}>{cooking_time} мин.</div>
         </div>
+
         <div className={styles.card__controls}>
           <Button
             className={styles.card__add}
-            clickHandler={(_) => {
-              if (!authContext) {
-                return setToLogin(true);
-              }
-              handleAddToCart({
-                id,
-                toAdd: Number(!is_in_shopping_cart),
-                callback: updateOrders,
-              });
-            }}
+            clickHandler={onCartClick}
           >
             {is_in_shopping_cart ? (
               <>
@@ -107,24 +112,18 @@ const Card = ({
 
           <Button
             modifier="style_none"
-            clickHandler={(_) => {
-              if (!authContext) {
-                return setToLogin(true);
-              }
-              handleLike({ id, toLike: Number(!is_favorited) });
-            }}
+            clickHandler={onLikeClick}
             className={cn(styles["card__save-button"], {
               [styles["card__save-button_active"]]: is_favorited,
             })}
-            data-tooltip-id={id}
+            data-tooltip-id={`like-${id}`}
             data-tooltip-content={
               is_favorited ? "Удалить из избранного" : "Добавить в избранное"
             }
-            data-tooltip-place="bottom"
           >
             <Icons.LikeIcon />
           </Button>
-          <Tooltip id={id.toString()} />
+          <Tooltip id={`like-${id}`} />
         </div>
       </div>
     </div>
