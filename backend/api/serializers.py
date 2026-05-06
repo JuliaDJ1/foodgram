@@ -47,14 +47,20 @@ class RecipeIngredientWriteSerializer(serializers.ModelSerializer):
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
+
+    def get_image(self, obj):
+        return obj.image.url if obj.image else None
 
 
 class UserWithRecipesSerializer(serializers.ModelSerializer):
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -67,11 +73,13 @@ class UserWithRecipesSerializer(serializers.ModelSerializer):
     def get_recipes_count(self, obj):
         return obj.recipes.count()
 
+    def get_avatar(self, obj):
+        return obj.avatar.url if obj.avatar else None
+
 
 class RecipeSerializer(serializers.ModelSerializer):
     image = Base64ImageField()
     tags = serializers.PrimaryKeyRelatedField(many=True, queryset=Tag.objects.all())
-    # Фронтенд шлёт именно ingredients
     ingredients = RecipeIngredientWriteSerializer(many=True, write_only=True)
     author = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
@@ -85,13 +93,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         )
 
     def get_author(self, obj):
-        return {
-            'id': obj.author.id,
-            'username': obj.author.username,
-            'first_name': obj.author.first_name,
-            'last_name': obj.author.last_name,
-            'avatar': obj.author.avatar.url if obj.author.avatar else None,
-        }
+        return UserWithRecipesSerializer(obj.author).data
 
     def get_is_favorited(self, obj):
         request = self.context.get('request')
@@ -110,6 +112,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         representation['ingredients'] = RecipeIngredientSerializer(
             instance.recipe_ingredients.all(), many=True
         ).data
+        if instance.image:
+            representation['image'] = instance.image.url
         return representation
 
     def create(self, validated_data):

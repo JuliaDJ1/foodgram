@@ -1,16 +1,17 @@
 import base64
 from django.core.files.base import ContentFile
-from django.utils import timezone
+from django.http import HttpResponse
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
-from recipes.models import Tag, Ingredient, Recipe, Favorite, ShoppingCart, Subscription
-from django.http import HttpResponse
+
+from recipes.models import Favorite, Recipe, ShoppingCart, Subscription, Tag, Ingredient
 from users.models import User
 from .serializers import (
-    TagSerializer, IngredientSerializer, RecipeSerializer,
-    FavoriteSerializer, ShoppingCartSerializer, SubscriptionSerializer
+    IngredientSerializer, RecipeSerializer, TagSerializer,
+    FavoriteSerializer, ShoppingCartSerializer, SubscriptionSerializer,
+    UserWithRecipesSerializer
 )
 
 
@@ -37,10 +38,20 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['tags']
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.query_params.get('is_favorited') == 'true':
+            queryset = queryset.filter(favorite__user=self.request.user)
+        if self.request.query_params.get('is_in_shopping_cart') == 'true':
+            queryset = queryset.filter(shopping_cart__user=self.request.user)
+        return queryset
+
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
     def perform_update(self, serializer):
+        if self.get_object().author != self.request.user:
+            raise permissions.PermissionDenied("Можно редактировать только свои рецепты")
         serializer.save(author=self.request.user)
 
     @action(detail=True, methods=['post', 'delete'], permission_classes=[permissions.IsAuthenticated])
@@ -65,9 +76,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def download_shopping_cart(self, request):
-        user = request.user
-        shopping_cart_recipes = Recipe.objects.filter(shopping_cart__user=user)
-
+        shopping_cart_recipes = Recipe.objects.filter(shopping_cart__user=request.user)
         ingredients_dict = {}
         for recipe in shopping_cart_recipes:
             for rec_ing in recipe.recipe_ingredients.all():
@@ -90,12 +99,12 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['put'], url_path='me/avatar')
     def avatar(self, request):
         user = request.user
-        if 'avatar' in request.data:
-            avatar_data = request.data['avatar']
+        avatar_data = request.data.get('avatar')
+        if avatar_data:
             if isinstance(avatar_data, str) and avatar_data.startswith('data:image'):
                 format, imgstr = avatar_data.split(';base64,')
                 ext = format.split('/')[-1]
-                data = ContentFile(base64.b64decode(imgstr), name=timezone.now().strftime("%Y%m%d%H%M%S") + '.' + ext)
+                data = ContentFile(base64.b64decode(imgstr), name=f'avatar_{user.id}.{ext}')
                 user.avatar = data
             else:
                 user.avatar = avatar_data
@@ -119,5 +128,6 @@ class SubscriptionViewSet(viewsets.ViewSet):
         if request.method == 'POST':
             Subscription.objects.get_or_create(user=request.user, author=author)
             return Response(status=status.HTTP_201_CREATED)
-        Subscription.objects.filter(user=request.user, author=author).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            Subscription.objects.filter(user=request.user, author=author).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)

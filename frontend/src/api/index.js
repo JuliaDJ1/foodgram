@@ -86,7 +86,6 @@ class Api {
     }).then(this.checkResponse);
   }
 
-  // ← ИСПРАВЛЕННЫЙ МЕТОД (самое главное)
   updateRecipe(recipeId, data) {
     const token = localStorage.getItem("token");
     return fetch(`/api/recipes/${recipeId}/`, {
@@ -211,14 +210,6 @@ class Api {
         ...this._headers,
         authorization: `Token ${token}`,
       },
-    }).then(this.checkResponse);
-  }
-
-  // Ingredients & Tags
-  getIngredients({ name }) {
-    return fetch(`/api/ingredients/?name=${name}`, {
-      method: "GET",
-      headers: this._headers,
     }).then(this.checkResponse);
   }
 

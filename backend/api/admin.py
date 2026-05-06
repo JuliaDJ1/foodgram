@@ -1,3 +1,2 @@
 from django.contrib import admin
-
-# Register your models here.
+# Пустой файл — все модели зарегистрированы в recipes/admin.py и users/admin.py

@@ -1,60 +1,62 @@
 import { PurchaseList, Title, Container, Main, Button } from '../../components'
 import styles from './styles.module.css'
-import { useRecipes } from '../../utils/index.js'
 import { useEffect, useState } from 'react'
 import api from '../../api'
 import MetaTags from 'react-meta-tags'
 
-const Cart = ({ updateOrders, orders }) => {
-  const {
-    recipes,
-    setRecipes,
-    handleAddToCart
-  } = useRecipes()
-  
+const Cart = ({ updateOrders }) => {
+  const [recipes, setRecipes] = useState([])
+
   const getRecipes = () => {
     api
       .getRecipes({
         page: 1,
         limit: 999,
-        is_in_shopping_cart: Number(true)
+        is_in_shopping_cart: 1
       })
-      .then(res => {
-        const { results } = res
-        setRecipes(results)
-      })
+      .then(res => setRecipes(res.results || []))
+      .catch(err => console.error(err))
   }
 
-  useEffect(_ => {
+  useEffect(() => {
     getRecipes()
   }, [])
 
-  const downloadDocument = () => {
-    api.downloadFile()
+  const handleRemoveFromCart = (id) => {
+    api.removeFromShoppingCart({ id }).then(() => {
+      getRecipes()
+      updateOrders && updateOrders()
+    })
   }
 
-  return <Main>
-    <Container className={styles.container}>
-      <MetaTags>
-        <title>Список покупок</title>
-        <meta name="description" content="Фудграм - Список покупок" />
-        <meta property="og:title" content="Список покупок" />
-      </MetaTags>
-      <div className={styles.cart}>
-        <Title title='Список покупок' />
-        <PurchaseList
-          orders={recipes}
-          handleRemoveFromCart={handleAddToCart}
-          updateOrders={updateOrders}
-        />
-        {orders > 0 && <Button
-          modifier='style_dark'
-          clickHandler={downloadDocument}
-        >Скачать список</Button>}
-      </div>
-    </Container>
-  </Main>
+  const downloadDocument = () => {
+    api.downloadShoppingCart()
+  }
+
+  return (
+    <Main>
+      <Container className={styles.container}>
+        <MetaTags>
+          <title>Список покупок</title>
+        </MetaTags>
+        <div className={styles.cart}>
+          <Title title='Список покупок' />
+          <PurchaseList
+            orders={recipes}
+            handleRemoveFromCart={handleRemoveFromCart}
+          />
+          {recipes.length > 0 && (
+            <Button
+              modifier='style_dark'
+              clickHandler={downloadDocument}
+            >
+              Скачать список
+            </Button>
+          )}
+        </div>
+      </Container>
+    </Main>
+  )
 }
 
 export default Cart
-

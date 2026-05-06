@@ -1,5 +1,5 @@
 import styles from "./styles.module.css";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
 import { LinkComponent, Orders } from "../index.js";
 import { AuthContext, UserContext } from "../../contexts";
 import { UserMenu } from "../../configs/navigation";
@@ -25,26 +25,25 @@ const Account = ({ onSignOut, orders }) => {
   const authContext = useContext(AuthContext);
   const userContext = useContext(UserContext);
   const [isChangeAvatarOpen, setIsChangeAvatarOpen] = useState(false);
-  const [newAvatar, setNewAvatar] = useState("");
+  const [newAvatar, setNewAvatar] = useState(null);
 
   const handleSaveAvatar = () => {
-    if (newAvatar) {
-      api
-        .changeAvatar({ file: newAvatar })
-        .then(({ avatar }) => {
-          userContext.avatar = avatar;
-          setIsChangeAvatarOpen(false);
-        })
-        .catch((err) => console.log(err));
-    } else {
-      api
-        .deleteAvatar()
-        .then(() => {
-          userContext.avatar = "";
-          setIsChangeAvatarOpen(false);
-        })
-        .catch((err) => console.log(err));
+    if (!newAvatar) {
+      setIsChangeAvatarOpen(false);
+      return;
     }
+
+    api.changeAvatar(newAvatar)
+      .then((data) => {
+        userContext.avatar = data.avatar;
+        setIsChangeAvatarOpen(false);
+        setNewAvatar(null);
+        window.location.reload();
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("Не удалось сохранить аватар");
+      });
   };
 
   if (!authContext) {
@@ -60,7 +59,7 @@ const Account = ({ onSignOut, orders }) => {
       />
       <div
         style={{
-          "background-image": `url(${userContext.avatar || DefaultImage})`,
+          backgroundImage: `url(${userContext.avatar || DefaultImage})`,
         }}
         className={styles.accountAvatar}
         onClick={() => {
@@ -81,7 +80,7 @@ const Account = ({ onSignOut, orders }) => {
           <ul className={styles.accountLinks}>
             {UserMenu.map((menuItem) => {
               return (
-                <li className={styles.accountLinkItem}>
+                <li key={menuItem.href} className={styles.accountLinkItem}>
                   <LinkComponent
                     className={styles.accountLink}
                     href={menuItem.href}
@@ -106,11 +105,14 @@ const Account = ({ onSignOut, orders }) => {
           </ul>
         </div>
       </div>
+
       {isChangeAvatarOpen && (
         <AvatarPopup
-          info="test"
           avatar={userContext.avatar}
-          onClose={() => setIsChangeAvatarOpen(false)}
+          onClose={() => {
+            setIsChangeAvatarOpen(false);
+            setNewAvatar(null);
+          }}
           onSubmit={handleSaveAvatar}
           onChange={setNewAvatar}
         />
