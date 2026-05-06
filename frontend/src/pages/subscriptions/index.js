@@ -8,9 +8,7 @@ const SubscriptionsPage = () => {
   const {
     subscriptions,
     setSubscriptions,
-    removeSubscription,
-    subscriptionsPage,
-    setSubscriptionsPage
+    removeSubscription
   } = useSubscriptions()
 
   const getSubscriptions = () => {
