@@ -40,11 +40,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        if self.request.query_params.get('is_favorited') == 'true':
-            queryset = queryset.filter(favorite__user=self.request.user)
-        if self.request.query_params.get('is_in_shopping_cart') == 'true':
-            queryset = queryset.filter(shopping_cart__user=self.request.user)
-        return queryset
+        user = self.request.user
+
+        # Фронтенд шлёт 0 или 1
+        is_favorited = self.request.query_params.get('is_favorited')
+        is_in_shopping_cart = self.request.query_params.get('is_in_shopping_cart')
+
+        if is_favorited in ('1', 'true') and user.is_authenticated:
+            queryset = queryset.filter(favorite__user=user)
+
+        if is_in_shopping_cart in ('1', 'true') and user.is_authenticated:
+            queryset = queryset.filter(shopping_cart__user=user)
+
+        return queryset.distinct()
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)

@@ -11,14 +11,13 @@ const Cart = ({ updateOrders }) => {
     api
       .getRecipes({
         page: 1,
-        limit: 999,                    // ← большой лимит, чтобы получить всё
+        limit: 999,
         is_in_shopping_cart: 1
       })
       .then((res) => {
+        console.log('📦 Ответ от бэкенда для корзины:', res) // ← смотри сюда в консоли!
         const results = res.results || []
         setRecipes(results)
-        
-        // ← ИСПРАВЛЕНИЕ: передаём реальное количество, а не длину страницы
         if (updateOrders) {
           updateOrders(res.count !== undefined ? res.count : results.length)
         }
@@ -32,7 +31,7 @@ const Cart = ({ updateOrders }) => {
 
   const handleRemoveFromCart = (id) => {
     api.removeFromShoppingCart({ id }).then(() => {
-      getRecipes()                    // ← перезагружаем список + счётчик
+      getRecipes()
     })
   }
 
