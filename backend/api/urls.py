@@ -9,9 +9,9 @@ router.register('recipes', RecipeViewSet)
 router.register('users', UserViewSet, basename='users')
 
 urlpatterns = [
-    # ← Эти два пути ДОЛЖНЫ быть ПЕРЕД router.urls, чтобы не было конфликта
+    # Эти два пути ДОЛЖНЫ быть ПЕРЕД router.urls
     path('users/subscriptions/', SubscriptionViewSet.as_view({'get': 'subscriptions'}), name='subscriptions'),
     path('users/<int:pk>/subscribe/', SubscriptionViewSet.as_view({'post': 'subscribe', 'delete': 'subscribe'}), name='subscribe'),
 
-    path('', include(router.urls)),   # ← router теперь после
+    path('', include(router.urls)),   # ← роутер теперь в самом конце
 ]

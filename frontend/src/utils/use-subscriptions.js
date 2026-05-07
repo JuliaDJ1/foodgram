@@ -1,38 +1,41 @@
-import React, { useState } from "react";
-import { useTags } from './index.js'
+import { useState } from "react";
 import api from '../api'
 
-export default function useRecipes () {
+export default function useSubscriptions () {
   const [ subscriptions, setSubscriptions ] = useState([])
   const [ subscriptionsPage, setSubscriptionsPage ] = useState(1)
   const [ subscriptionsCount, setSubscriptionsCount ] = useState(0)
 
-  const removeSubscription = ({ id, callback }) => {
-    api
-      .deleteSubscriptions({ author_id: id })
+  const getSubscriptions = () => {
+    api.getSubscriptions()
       .then(res => {
-        const subscriptionsUpdated = subscriptions.filter(item => {
-          return item.id !== id
-        })
-        setSubscriptions(subscriptionsUpdated)
+        setSubscriptions(res)           // бэкенд возвращает массив
+        setSubscriptionsCount(res.length)
+      })
+      .catch(err => console.error("Ошибка загрузки подписок:", err))
+  }
+
+  const removeSubscription = ({ id, callback }) => {
+    api.unsubscribe({ id })
+      .then(() => {
+        const updated = subscriptions.filter(item => item.id !== id)
+        setSubscriptions(updated)
         setSubscriptionsCount(subscriptionsCount - 1)
         callback && callback()
       })
       .catch(err => {
-        const { errors } = err
-        if (errors) {
-          alert(errors)
-        }
+        if (err && err.errors) alert(err.errors)
       })
   }
-  
+
   return {
     subscriptions,
     setSubscriptions,
     subscriptionsPage,
     setSubscriptionsPage,
-    removeSubscription,
     subscriptionsCount,
-    setSubscriptionsCount
+    setSubscriptionsCount,
+    removeSubscription,
+    getSubscriptions   // ← добавили, чтобы страница могла вызвать
   }
 }
