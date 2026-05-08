@@ -54,14 +54,16 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'image', 'cooking_time')
 
     def get_image(self, obj):
-        return obj.image.url if obj.image else None
+        if obj.image:
+            return f'/media/{obj.image.name}'
+        return None
 
 
 class UserWithRecipesSerializer(serializers.ModelSerializer):
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
-    is_subscribed = serializers.SerializerMethodField()   # ← Добавлено
+    is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -75,9 +77,11 @@ class UserWithRecipesSerializer(serializers.ModelSerializer):
         return obj.recipes.count()
 
     def get_avatar(self, obj):
-        return obj.avatar.url if obj.avatar else None
+        if obj.avatar:
+            return f'/media/{obj.avatar.name}'
+        return None
 
-    def get_is_subscribed(self, obj):                     # ← Добавлено
+    def get_is_subscribed(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return Subscription.objects.filter(user=request.user, author=obj).exists()
@@ -100,7 +104,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         )
 
     def get_author(self, obj):
-        return UserWithRecipesSerializer(obj.author, context=self.context).data   # ← context добавлен
+        return UserWithRecipesSerializer(obj.author, context=self.context).data
 
     def get_is_favorited(self, obj):
         request = self.context.get('request')
@@ -120,7 +124,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             instance.recipe_ingredients.all(), many=True
         ).data
         if instance.image:
-            representation['image'] = instance.image.url
+            representation['image'] = f'/media/{instance.image.name}'
         return representation
 
     def create(self, validated_data):
@@ -134,15 +138,12 @@ class RecipeSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         tags = validated_data.pop('tags', None)
         ingredients = validated_data.pop('ingredients', None)
-
         instance = super().update(instance, validated_data)
-
         if tags is not None:
             instance.tags.set(tags)
         if ingredients is not None:
             instance.recipe_ingredients.all().delete()
             self._create_ingredients(instance, ingredients)
-
         instance.save()
         return instance
 

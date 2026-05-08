@@ -14,8 +14,9 @@ const SubscriptionsPage = () => {
   const getSubscriptions = () => {
     api.getSubscriptions()
       .then(res => {
-        setSubscriptions(res)
+        setSubscriptions(res.map(item => ({ ...item.author })))
       })
+      .catch(err => console.error('Ошибка загрузки подписок:', err))
   }
 
   useEffect(() => {
