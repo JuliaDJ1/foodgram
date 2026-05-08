@@ -13,7 +13,6 @@ class Api {
     return res.json().then(err => Promise.reject(err));
   }
 
-  // Auth
   signin = (data) => {
     return fetch("/api/auth/token/login/", {
       method: "POST",
@@ -46,7 +45,17 @@ class Api {
     }).then(this.checkResponse);
   }
 
-  // Recipes
+  getUser = ({ id }) => {
+    const token = localStorage.getItem("token");
+    const headers = token
+      ? { ...this._headers, authorization: `Token ${token}` }
+      : this._headers;
+    return fetch(`/api/users/${id}/`, {
+      method: "GET",
+      headers,
+    }).then(this.checkResponse);
+  }
+
   getRecipes = (params = {}) => {
     const queryParams = {
       page: params.page || 1,
@@ -55,21 +64,24 @@ class Api {
       is_in_shopping_cart: params.is_in_shopping_cart || 0,
     };
 
-    // ← КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: поддержка фильтра по тегам
     if (params.tags !== undefined && params.tags !== null) {
       queryParams.tags = params.tags;
+    }
+
+    if (params.author !== undefined && params.author !== null) {
+      queryParams.author = params.author;
     }
 
     const query = new URLSearchParams(queryParams).toString();
 
     const token = localStorage.getItem("token");
-    const headers = token 
+    const headers = token
       ? { ...this._headers, authorization: `Token ${token}` }
       : this._headers;
 
-    return fetch(`/api/recipes/?${query}`, { 
+    return fetch(`/api/recipes/?${query}`, {
       method: "GET",
-      headers 
+      headers
     }).then(this.checkResponse);
   }
 
@@ -107,7 +119,6 @@ class Api {
     }).then(this.checkResponse);
   }
 
-  // Favorites
   addToFavorites = ({ id }) => {
     const token = localStorage.getItem("token");
     return fetch(`/api/recipes/${id}/favorite/`, {
@@ -124,7 +135,6 @@ class Api {
     }).then(this.checkResponse);
   }
 
-  // Shopping Cart
   addToShoppingCart = ({ id }) => {
     const token = localStorage.getItem("token");
     return fetch(`/api/recipes/${id}/shopping_cart/`, {
@@ -162,7 +172,6 @@ class Api {
     });
   }
 
-  // Subscriptions
   subscribe = ({ id }) => {
     const token = localStorage.getItem("token");
     return fetch(`/api/users/${id}/subscribe/`, {
@@ -179,6 +188,10 @@ class Api {
     }).then(this.checkResponse);
   }
 
+  deleteSubscriptions = ({ author_id }) => {
+    return this.unsubscribe({ id: author_id });
+  }
+
   getSubscriptions = () => {
     const token = localStorage.getItem("token");
     return fetch("/api/users/subscriptions/", {
@@ -187,7 +200,6 @@ class Api {
     }).then(this.checkResponse);
   }
 
-  // Ingredients & Tags
   getIngredients = ({ name }) => {
     return fetch(`/api/ingredients/?name=${name}`, {
       method: "GET",
@@ -202,7 +214,6 @@ class Api {
     }).then(this.checkResponse);
   }
 
-  // Avatar
   changeAvatar = (file) => {
     const token = localStorage.getItem("token");
     const formData = new FormData();

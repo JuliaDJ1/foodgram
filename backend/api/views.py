@@ -36,7 +36,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     serializer_class = RecipeSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend]
-    # filterset_fields = ['tags']  ← УДАЛЕНО, чтобы не конфликтовало
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -45,16 +44,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
         is_favorited = self.request.query_params.get('is_favorited')
         is_in_shopping_cart = self.request.query_params.get('is_in_shopping_cart')
         tags = self.request.query_params.get('tags')
+        author = self.request.query_params.get('author')
 
-        # Фильтр избранное
         if is_favorited in ('1', 'true') and user.is_authenticated:
             queryset = queryset.filter(favorites__user=user)
 
-        # Фильтр корзина
         if is_in_shopping_cart in ('1', 'true') and user.is_authenticated:
             queryset = queryset.filter(shopping_cart__user=user)
 
-        # Фильтр по тегам (поддержка нескольких через запятую)
         if tags:
             try:
                 tag_ids = [int(t.strip()) for t in tags.split(',') if t.strip().isdigit()]
@@ -62,6 +59,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     queryset = queryset.filter(tags__id__in=tag_ids)
             except ValueError:
                 pass
+
+        if author:
+            queryset = queryset.filter(author__id=author)
 
         return queryset.distinct()
 
@@ -111,11 +111,18 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return response
 
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
+class UserViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.AllowAny]
 
-    @action(detail=False, methods=['put'], url_path='me/avatar')
+    def retrieve(self, request, pk=None):
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({'detail': 'Не найдено.'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = UserWithRecipesSerializer(user, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['put'], url_path='me/avatar', permission_classes=[permissions.IsAuthenticated])
     def avatar(self, request):
         user = request.user
         avatar_data = request.data.get('avatar')
@@ -137,8 +144,8 @@ class SubscriptionViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def subscriptions(self, request):
-        subscriptions = Subscription.objects.filter(user=request.user)
-        serializer = SubscriptionSerializer(subscriptions, many=True)
+        authors = User.objects.filter(following__user=request.user)
+        serializer = UserWithRecipesSerializer(authors, many=True, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=True, methods=['post', 'delete'])
