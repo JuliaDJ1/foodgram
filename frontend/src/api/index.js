@@ -87,9 +87,12 @@ class Api {
 
   getRecipe = ({ recipe_id }) => {
     const token = localStorage.getItem("token");
+    const headers = token
+      ? { ...this._headers, authorization: `Token ${token}` }
+      : this._headers;
     return fetch(`/api/recipes/${recipe_id}/`, {
       method: "GET",
-      headers: { ...this._headers, authorization: `Token ${token}` },
+      headers,
     }).then(this.checkResponse);
   }
 

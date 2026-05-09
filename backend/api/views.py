@@ -2,7 +2,7 @@ import base64
 from django.core.files.base import ContentFile
 from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, views
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -10,7 +10,6 @@ from recipes.models import Favorite, Recipe, ShoppingCart, Subscription, Tag, In
 from users.models import User
 from .serializers import (
     IngredientSerializer, RecipeSerializer, TagSerializer,
-    FavoriteSerializer, ShoppingCartSerializer, SubscriptionSerializer,
     UserWithRecipesSerializer
 )
 
@@ -29,6 +28,13 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [DjangoFilterBackend]
     search_fields = ['name']
     pagination_class = None
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        name = self.request.query_params.get('name')
+        if name:
+            queryset = queryset.filter(name__istartswith=name)
+        return queryset
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -111,6 +117,37 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return response
 
 
+class AvatarView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def put(self, request):
+        user = request.user
+        avatar_data = request.data.get('avatar')
+        if not avatar_data:
+            file = request.FILES.get('avatar')
+            if file:
+                user.avatar = file
+                user.save()
+                return Response({'avatar': f'/media/{user.avatar.name}'})
+            return Response({'error': 'avatar required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if isinstance(avatar_data, str) and avatar_data.startswith('data:image'):
+            fmt, imgstr = avatar_data.split(';base64,')
+            ext = fmt.split('/')[-1]
+            data = ContentFile(base64.b64decode(imgstr), name=f'avatar_{user.id}.{ext}')
+            user.avatar = data
+            user.save()
+            return Response({'avatar': f'/media/{user.avatar.name}'})
+
+        return Response({'error': 'invalid format'}, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request):
+        user = request.user
+        user.avatar = None
+        user.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class UserViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
 
@@ -121,22 +158,6 @@ class UserViewSet(viewsets.ViewSet):
             return Response({'detail': 'Не найдено.'}, status=status.HTTP_404_NOT_FOUND)
         serializer = UserWithRecipesSerializer(user, context={'request': request})
         return Response(serializer.data)
-
-    @action(detail=False, methods=['put'], url_path='me/avatar', permission_classes=[permissions.IsAuthenticated])
-    def avatar(self, request):
-        user = request.user
-        avatar_data = request.data.get('avatar')
-        if avatar_data:
-            if isinstance(avatar_data, str) and avatar_data.startswith('data:image'):
-                format, imgstr = avatar_data.split(';base64,')
-                ext = format.split('/')[-1]
-                data = ContentFile(base64.b64decode(imgstr), name=f'avatar_{user.id}.{ext}')
-                user.avatar = data
-            else:
-                user.avatar = avatar_data
-            user.save()
-            return Response({'avatar': user.avatar.url if user.avatar else None})
-        return Response({'error': 'avatar required'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class SubscriptionViewSet(viewsets.ViewSet):

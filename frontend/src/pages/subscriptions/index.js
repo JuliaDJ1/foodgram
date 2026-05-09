@@ -14,7 +14,8 @@ const SubscriptionsPage = () => {
   const getSubscriptions = () => {
     api.getSubscriptions()
       .then(res => {
-        setSubscriptions(res.map(item => ({ ...item.author })))
+        const data = Array.isArray(res) ? res : (res.results || [])
+        setSubscriptions(data)
       })
       .catch(err => console.error('Ошибка загрузки подписок:', err))
   }

@@ -123,6 +123,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         representation['ingredients'] = RecipeIngredientSerializer(
             instance.recipe_ingredients.all(), many=True
         ).data
+        representation['tags'] = TagSerializer(instance.tags.all(), many=True).data
         if instance.image:
             representation['image'] = f'/media/{instance.image.name}'
         return representation

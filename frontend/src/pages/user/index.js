@@ -55,26 +55,21 @@ const UserPage = ({ updateOrders }) => {
         setUser(res);
         setSubscribed(res.is_subscribed);
       })
-      .catch((err) => {
+      .catch(() => {
         history.push("/not-found");
       });
   };
 
-  useEffect(
-    (_) => {
-      if (!user) {
-        return;
-      }
-      getRecipes({ page: recipesPage, tags: tagsValue, author: user.id });
-    },
-    [recipesPage, tagsValue, user]
-  );
+  useEffect(() => {
+    if (!user) return;
+    getRecipes({ page: recipesPage, tags: tagsValue, author: user.id });
+  }, [recipesPage, tagsValue, user]);
 
-  useEffect((_) => {
+  useEffect(() => {
     getUser();
   }, []);
 
-  useEffect((_) => {
+  useEffect(() => {
     api.getTags().then((tags) => {
       setTagsValue(tags.map((tag) => ({ ...tag, value: true })));
     });
@@ -85,26 +80,8 @@ const UserPage = ({ updateOrders }) => {
       <Container className={styles.container}>
         <MetaTags>
           <title>
-            {user
-              ? `${user.first_name} ${user.last_name}`
-              : "Страница пользователя"}
+            {user ? `${user.first_name} ${user.last_name}` : "Страница пользователя"}
           </title>
-          <meta
-            name="description"
-            content={
-              user
-                ? `Фудграм - ${user.first_name} ${user.last_name}`
-                : "Фудграм - Страница пользователя"
-            }
-          />
-          <meta
-            property="og:title"
-            content={
-              user
-                ? `${user.first_name} ${user.last_name}`
-                : "Страница пользователя"
-            }
-          />
         </MetaTags>
         <div className={styles.title}>
           <div className={styles.titleTextBox}>
@@ -112,15 +89,11 @@ const UserPage = ({ updateOrders }) => {
               <div
                 className={styles.userAvatar}
                 style={{
-                  "background-image": `url(${
-                    (user && user.avatar) || DefaultImage
-                  })`,
+                  backgroundImage: `url(${(user && user.avatar) || DefaultImage})`,
                 }}
               />
               <Title
-                className={cn({
-                  [styles.titleText]: true,
-                })}
+                className={cn({ [styles.titleText]: true })}
                 title={user ? `${user.first_name} ${user.last_name}` : ""}
               />
             </div>
@@ -131,13 +104,11 @@ const UserPage = ({ updateOrders }) => {
                   [styles.buttonSubscribeActive]: subscribed,
                 })}
                 modifier={subscribed ? "style_dark" : "style_light"}
-                clickHandler={(_) => {
+                clickHandler={() => {
                   const method = subscribed
-                    ? api.deleteSubscriptions.bind(api)
+                    ? api.unsubscribe.bind(api)
                     : api.subscribe.bind(api);
-                  method({
-                    author_id: id,
-                  }).then((_) => {
+                  method({ id }).then(() => {
                     setSubscribed(!subscribed);
                   });
                 }}

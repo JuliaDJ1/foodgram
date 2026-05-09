@@ -14,8 +14,9 @@ import { Notification } from "../../components/notification";
 
 const SingleCard = ({ updateOrders }) => {
   const [notificationPosition, setNotificationPosition] = useState("-100%");
-  const { recipe, setRecipe, handleLike, handleAddToCart, handleSubscribe } = useRecipe();
+  const { recipe, setRecipe, handleAddToCart, handleSubscribe } = useRecipe();
   const authContext = useContext(AuthContext);
+  const userContext = useContext(UserContext);
   const { id } = useParams();
   const history = useHistory();
 
@@ -23,13 +24,21 @@ const SingleCard = ({ updateOrders }) => {
     api.getRecipe({ recipe_id: id })
       .then(res => setRecipe(res))
       .catch(() => history.push("/not-found"));
-  }, [id, setRecipe, history]);
+  }, [id]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href).then(() => {
       setNotificationPosition("40px");
       setTimeout(() => setNotificationPosition("-100%"), 3000);
     });
+  };
+
+  const handleDeleteRecipe = () => {
+    if (window.confirm("Удалить рецепт?")) {
+      api.deleteRecipe({ recipe_id: id })
+        .then(() => history.push("/recipes"))
+        .catch(err => console.error(err));
+    }
   };
 
   const {
@@ -40,11 +49,11 @@ const SingleCard = ({ updateOrders }) => {
     name,
     ingredients,
     text,
-    is_favorited,
     is_in_shopping_cart
   } = recipe || {};
 
   const isSubscribed = author.is_subscribed || false;
+  const isOwner = authContext && userContext && userContext.id === author.id;
 
   return (
     <Main>
@@ -63,12 +72,27 @@ const SingleCard = ({ updateOrders }) => {
                 modifier="style_none"
                 clickHandler={handleCopyLink}
                 className={styles["single-card__save-button"]}
-                data-tooltip-id="tooltip-copy"
-                data-tooltip-content="Скопировать ссылку"
               >
                 <Icons.CopyLinkIcon />
               </Button>
             </div>
+
+            {isOwner && (
+              <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+                <Button
+                  modifier="style_light"
+                  clickHandler={() => history.push(`/recipes/${id}/edit`)}
+                >
+                  Редактировать рецепт
+                </Button>
+                <Button
+                  modifier="style_light"
+                  clickHandler={handleDeleteRecipe}
+                >
+                  Удалить рецепт
+                </Button>
+              </div>
+            )}
 
             <div className={styles["single-card__extra-info"]}>
               <TagsContainer tags={tags} />
@@ -87,7 +111,7 @@ const SingleCard = ({ updateOrders }) => {
                   />
                 </div>
 
-                {authContext && (
+                {authContext && !isOwner && (
                   <button
                     style={{
                       padding: "12px 24px",
@@ -99,15 +123,10 @@ const SingleCard = ({ updateOrders }) => {
                       cursor: "pointer"
                     }}
                     onClick={() => {
-                      console.log("🔥 Клик по кнопке подписки ДОШЁЛ!");
-                      console.log("isSubscribed перед:", isSubscribed);
-
-                      // Только optimistic — без refetch (чтобы не слетало)
                       setRecipe(prev => ({
                         ...prev,
                         author: { ...prev.author, is_subscribed: !isSubscribed }
                       }));
-
                       handleSubscribe({
                         author_id: author.id,
                         toSubscribe: !isSubscribed
@@ -128,14 +147,9 @@ const SingleCard = ({ updateOrders }) => {
                   clickHandler={() => handleAddToCart({ id, toAdd: !is_in_shopping_cart, callback: updateOrders })}
                 >
                   {is_in_shopping_cart ? (
-                    <>
-                      <Icons.CheckIcon />
-                      Рецепт добавлен
-                    </>
+                    <><Icons.CheckIcon /> Рецепт добавлен</>
                   ) : (
-                    <>
-                      <Icons.PlusIcon /> Добавить в покупки
-                    </>
+                    <><Icons.PlusIcon /> Добавить в покупки</>
                   )}
                 </Button>
               )}

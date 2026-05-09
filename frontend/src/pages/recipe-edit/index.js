@@ -10,41 +10,83 @@ import {
   Button,
   Textarea,
 } from "../../components";
-import styles from "./styles.module.css";
 import api from "../../api";
 import { useEffect, useState } from "react";
 import { useParams, useHistory } from "react-router-dom";
 import MetaTags from "react-meta-tags";
-import { useTags } from "../../utils";
+import { Icons } from "../../components";
+import cn from "classnames";
 
 const RecipeEdit = () => {
   const { id: recipeId } = useParams();
   const history = useHistory();
-  const { value: tagsValue = [], handleChange: handleTagsChange, setValue: setTagsValue } = useTags();
 
   const [recipeName, setRecipeName] = useState("");
   const [recipeText, setRecipeText] = useState("");
   const [recipeTime, setRecipeTime] = useState(0);
   const [recipeIngredients, setRecipeIngredients] = useState([]);
   const [recipeFile, setRecipeFile] = useState(null);
+  const [tagsValue, setTagsValue] = useState([]);
+  const [ingredientValue, setIngredientValue] = useState({ name: "", id: null, amount: "", measurement_unit: "" });
+  const [ingredients, setIngredients] = useState([]);
+  const [showIngredients, setShowIngredients] = useState(false);
+  const [submitError, setSubmitError] = useState({ submitError: "" });
+  const [ingredientError, setIngredientError] = useState("");
 
   useEffect(() => {
     if (!recipeId) return;
 
-    api.getRecipe({ recipe_id: recipeId })
-      .then((recipe) => {
+    api.getTags().then(allTags => {
+      api.getRecipe({ recipe_id: recipeId }).then(recipe => {
         setRecipeName(recipe.name || "");
         setRecipeText(recipe.text || "");
         setRecipeTime(recipe.cooking_time || 0);
         setRecipeIngredients(recipe.ingredients || []);
-        if (recipe.tags) setTagsValue(recipe.tags.map(t => t.id));
         if (recipe.image) setRecipeFile(recipe.image);
-      })
-      .catch(err => console.error(err));
-  }, [recipeId, setTagsValue]);
+
+        const recipeTagIds = (recipe.tags || []).map(t => t.id);
+        setTagsValue(allTags.map(tag => ({
+          ...tag,
+          value: recipeTagIds.includes(tag.id)
+        })));
+      });
+    });
+  }, [recipeId]);
+
+  useEffect(() => {
+    if (ingredientValue.name === "") {
+      setIngredients([]);
+      return;
+    }
+    api.getIngredients({ name: ingredientValue.name }).then(setIngredients);
+  }, [ingredientValue.name]);
+
+  const handleTagsChange = (id) => {
+    setTagsValue(prev => prev.map(tag => tag.id === id ? { ...tag, value: !tag.value } : tag));
+  };
+
+  const handleAddIngredient = () => {
+    if (!ingredientValue.id || ingredientValue.amount === "") {
+      return setIngredientError("Выберите ингредиент и укажите количество");
+    }
+    if (recipeIngredients.find(i => i.id === ingredientValue.id)) {
+      return setIngredientError("Ингредиент уже добавлен");
+    }
+    setRecipeIngredients([...recipeIngredients, ingredientValue]);
+    setIngredientValue({ name: "", id: null, amount: "", measurement_unit: "" });
+    setIngredientError("");
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    const selectedTags = tagsValue.filter(t => t.value).map(t => t.id);
+    if (selectedTags.length === 0) {
+      return setSubmitError({ submitError: "Выберите хотя бы один тег" });
+    }
+    if (recipeIngredients.length === 0) {
+      return setSubmitError({ submitError: "Добавьте хотя бы один ингредиент" });
+    }
 
     const data = {
       name: recipeName,
@@ -54,7 +96,7 @@ const RecipeEdit = () => {
         id: item.id,
         amount: Number(item.amount || 0)
       })),
-      tags: tagsValue
+      tags: selectedTags
     };
 
     if (recipeFile && typeof recipeFile !== "string") {
@@ -63,7 +105,10 @@ const RecipeEdit = () => {
 
     api.updateRecipe(recipeId, data)
       .then(() => history.push(`/recipes/${recipeId}`))
-      .catch(err => console.error(err));
+      .catch(err => {
+        const errors = Object.values(err);
+        setSubmitError({ submitError: errors.join(", ") });
+      });
   };
 
   return (
@@ -88,29 +133,66 @@ const RecipeEdit = () => {
             handleChange={handleTagsChange}
           />
 
-          <IngredientsSearch
-            onAdd={(ingredient) => {
-              if (!recipeIngredients.find(i => i.id === ingredient.id)) {
-                setRecipeIngredients([...recipeIngredients, { ...ingredient, amount: "" }]);
-              }
-            }}
-          />
-
-          {recipeIngredients.map((item) => (
-            <div key={item.id}>
-              {item.name} — 
-              <Input
-                value={item.amount || ""}
-                onChange={(e) => {
-                  const updated = recipeIngredients.map(i =>
-                    i.id === item.id ? { ...i, amount: e.target.value } : i
-                  );
-                  setRecipeIngredients(updated);
+          <div>
+            <Input
+              label="Ингредиенты"
+              placeholder="Начните вводить название"
+              value={ingredientValue.name}
+              onChange={(e) => {
+                setIngredientValue({ ...ingredientValue, name: e.target.value });
+                setShowIngredients(true);
+              }}
+              onFocus={() => setShowIngredients(true)}
+            />
+            <Input
+              placeholder="Количество"
+              value={ingredientValue.amount}
+              type="number"
+              onChange={(e) => setIngredientValue({ ...ingredientValue, amount: e.target.value })}
+            />
+            {ingredientValue.measurement_unit && (
+              <span>{ingredientValue.measurement_unit}</span>
+            )}
+            {showIngredients && ingredients.length > 0 && (
+              <IngredientsSearch
+                ingredients={ingredients}
+                onClick={({ id, name, measurement_unit }) => {
+                  setIngredientValue({ ...ingredientValue, id, name, measurement_unit });
+                  setIngredients([]);
+                  setShowIngredients(false);
                 }}
               />
-              <button onClick={() => setRecipeIngredients(recipeIngredients.filter(i => i.id !== item.id))}>×</button>
+            )}
+            <div onClick={handleAddIngredient} style={{ cursor: "pointer", marginTop: "8px" }}>
+              Добавить ингредиент
             </div>
-          ))}
+            {ingredientError && <p style={{ color: "red" }}>{ingredientError}</p>}
+          </div>
+
+          <div>
+            {recipeIngredients.map((item) => (
+              <div key={item.id} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                <span>{item.name}</span>
+                <span>—</span>
+                <Input
+                  value={item.amount || ""}
+                  type="number"
+                  onChange={(e) => {
+                    setRecipeIngredients(recipeIngredients.map(i =>
+                      i.id === item.id ? { ...i, amount: e.target.value } : i
+                    ));
+                  }}
+                />
+                <span>{item.measurement_unit}</span>
+                <span
+                  style={{ cursor: "pointer" }}
+                  onClick={() => setRecipeIngredients(recipeIngredients.filter(i => i.id !== item.id))}
+                >
+                  <Icons.IngredientDelete />
+                </span>
+              </div>
+            ))}
+          </div>
 
           <Input
             label="Время приготовления (мин)"
@@ -128,9 +210,12 @@ const RecipeEdit = () => {
           <FileInput
             onChange={setRecipeFile}
             label="Загрузить фото"
+            fileTypes={["image/png", "image/jpeg"]}
+            fileSize={5000}
           />
 
-          <Button type="submit">Сохранить изменения</Button>
+          <Button modifier="style_dark" type="submit">Сохранить изменения</Button>
+          {submitError.submitError && <p style={{ color: "red" }}>{submitError.submitError}</p>}
         </Form>
       </Container>
     </Main>
