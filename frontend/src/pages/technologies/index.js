@@ -16,15 +16,29 @@ const Technologies = () => {
         <div className={styles.content}>
           <h2 className={styles.subtitle}>Технологии, использованные в проекте</h2>
           <div className={styles.text}>
+            <h3>Backend</h3>
             <ul>
               <li>Python 3.12</li>
-              <li>Django + Django REST Framework</li>
-              <li>Djoser (авторизация)</li>
-              <li>PostgreSQL</li>
+              <li>Django 6.0</li>
+              <li>Django REST Framework 3.17</li>
+              <li>Djoser — авторизация по токену</li>
+              <li>PostgreSQL 15 — основная СУБД</li>
+              <li>Gunicorn — WSGI-сервер</li>
+              <li>Pillow — работа с изображениями</li>
+              <li>django-filter — фильтрация данных</li>
+            </ul>
+            <h3>Frontend</h3>
+            <ul>
+              <li>React 17 — SPA</li>
+              <li>React Router — навигация</li>
+              <li>CSS Modules — стилизация</li>
+            </ul>
+            <h3>Инфраструктура</h3>
+            <ul>
               <li>Docker + Docker Compose</li>
-              <li>Nginx (reverse proxy)</li>
-              <li>React (SPA)</li>
-              <li>GitHub Codespaces</li>
+              <li>Nginx — reverse proxy и раздача статики</li>
+              <li>GitHub — система контроля версий</li>
+              <li>GitHub Codespaces — среда разработки</li>
             </ul>
           </div>
         </div>
