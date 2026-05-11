@@ -57,5 +57,6 @@ docker compose exec backend python manage.py createsuperuser
 
 JuliaDJ1
 
-На сайте один из пользователей:
-testprakt@yandex.ru , 123123
+На сайте и администратора
+Email - admintest@yandex.ru
+Password - 123123
