@@ -18,10 +18,16 @@ urlpatterns = [
     ),
     path(
         'users/<int:pk>/subscribe/',
-        SubscriptionViewSet.as_view({'post': 'subscribe', 'delete': 'subscribe'}),
+        SubscriptionViewSet.as_view(
+            {'post': 'subscribe', 'delete': 'subscribe'}
+        ),
         name='subscribe'
     ),
-    path('users/<int:pk>/', UserViewSet.as_view({'get': 'retrieve'}), name='user-detail'),
+    path(
+        'users/<int:pk>/',
+        UserViewSet.as_view({'get': 'retrieve'}),
+        name='user-detail'
+    ),
     path('users/me/avatar/', AvatarView.as_view(), name='avatar'),
     path('', include(router.urls)),
 ]

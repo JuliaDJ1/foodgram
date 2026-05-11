@@ -6,7 +6,9 @@ from rest_framework import viewsets, permissions, status, views
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from recipes.models import Favorite, Recipe, ShoppingCart, Subscription, Tag, Ingredient
+from recipes.models import (
+    Favorite, Recipe, ShoppingCart, Subscription, Tag, Ingredient
+)
 from users.models import User
 from .serializers import (
     IngredientSerializer, RecipeSerializer, TagSerializer,
@@ -46,9 +48,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         user = self.request.user
-
         is_favorited = self.request.query_params.get('is_favorited')
-        is_in_shopping_cart = self.request.query_params.get('is_in_shopping_cart')
+        is_in_shopping_cart = self.request.query_params.get(
+            'is_in_shopping_cart'
+        )
         tags = self.request.query_params.get('tags')
         author = self.request.query_params.get('author')
 
@@ -60,7 +63,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         if tags:
             try:
-                tag_ids = [int(t.strip()) for t in tags.split(',') if t.strip().isdigit()]
+                tag_ids = [
+                    int(t.strip())
+                    for t in tags.split(',')
+                    if t.strip().isdigit()
+                ]
                 if tag_ids:
                     queryset = queryset.filter(tags__id__in=tag_ids)
             except ValueError:
@@ -76,44 +83,73 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         if self.get_object().author != self.request.user:
-            raise permissions.PermissionDenied("Можно редактировать только свои рецепты")
+            raise permissions.PermissionDenied(
+                'Можно редактировать только свои рецепты'
+            )
         serializer.save(author=self.request.user)
 
-    @action(detail=True, methods=['post', 'delete'], permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=True,
+        methods=['post', 'delete'],
+        permission_classes=[permissions.IsAuthenticated]
+    )
     def favorite(self, request, pk=None):
         recipe = self.get_object()
         if request.method == 'POST':
             Favorite.objects.get_or_create(user=request.user, recipe=recipe)
         else:
-            Favorite.objects.filter(user=request.user, recipe=recipe).delete()
+            Favorite.objects.filter(
+                user=request.user, recipe=recipe
+            ).delete()
         serializer = self.get_serializer(recipe)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post', 'delete'], permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=True,
+        methods=['post', 'delete'],
+        permission_classes=[permissions.IsAuthenticated]
+    )
     def shopping_cart(self, request, pk=None):
         recipe = self.get_object()
         if request.method == 'POST':
-            ShoppingCart.objects.get_or_create(user=request.user, recipe=recipe)
+            ShoppingCart.objects.get_or_create(
+                user=request.user, recipe=recipe
+            )
         else:
-            ShoppingCart.objects.filter(user=request.user, recipe=recipe).delete()
+            ShoppingCart.objects.filter(
+                user=request.user, recipe=recipe
+            ).delete()
         serializer = self.get_serializer(recipe)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=[permissions.IsAuthenticated]
+    )
     def download_shopping_cart(self, request):
-        shopping_cart_recipes = Recipe.objects.filter(shopping_cart__user=request.user)
+        shopping_cart_recipes = Recipe.objects.filter(
+            shopping_cart__user=request.user
+        )
         ingredients_dict = {}
         for recipe in shopping_cart_recipes:
             for rec_ing in recipe.recipe_ingredients.all():
-                key = f"{rec_ing.ingredient.name} ({rec_ing.ingredient.measurement_unit})"
-                ingredients_dict[key] = ingredients_dict.get(key, 0) + rec_ing.amount
+                key = (
+                    f'{rec_ing.ingredient.name}'
+                    f' ({rec_ing.ingredient.measurement_unit})'
+                )
+                ingredients_dict[key] = (
+                    ingredients_dict.get(key, 0) + rec_ing.amount
+                )
 
-        lines = ["Список покупок:\n"]
+        lines = ['Список покупок:\n']
         for item, amount in sorted(ingredients_dict.items()):
-            lines.append(f"{item} — {amount}\n")
+            lines.append(f'{item} — {amount}\n')
 
-        response = HttpResponse("".join(lines), content_type="text/plain")
-        response['Content-Disposition'] = 'attachment; filename="shopping_list.txt"'
+        response = HttpResponse(''.join(lines), content_type='text/plain')
+        response['Content-Disposition'] = (
+            'attachment; filename="shopping_list.txt"'
+        )
         return response
 
 
@@ -129,17 +165,28 @@ class AvatarView(views.APIView):
                 user.avatar = file
                 user.save()
                 return Response({'avatar': f'/media/{user.avatar.name}'})
-            return Response({'error': 'avatar required'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'avatar required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        if isinstance(avatar_data, str) and avatar_data.startswith('data:image'):
+        if isinstance(avatar_data, str) and avatar_data.startswith(
+            'data:image'
+        ):
             fmt, imgstr = avatar_data.split(';base64,')
             ext = fmt.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name=f'avatar_{user.id}.{ext}')
+            data = ContentFile(
+                base64.b64decode(imgstr),
+                name=f'avatar_{user.id}.{ext}'
+            )
             user.avatar = data
             user.save()
             return Response({'avatar': f'/media/{user.avatar.name}'})
 
-        return Response({'error': 'invalid format'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {'error': 'invalid format'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     def delete(self, request):
         user = request.user
@@ -155,8 +202,13 @@ class UserViewSet(viewsets.ViewSet):
         try:
             user = User.objects.get(pk=pk)
         except User.DoesNotExist:
-            return Response({'detail': 'Не найдено.'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = UserWithRecipesSerializer(user, context={'request': request})
+            return Response(
+                {'detail': 'Не найдено.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = UserWithRecipesSerializer(
+            user, context={'request': request}
+        )
         return Response(serializer.data)
 
 
@@ -166,15 +218,21 @@ class SubscriptionViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def subscriptions(self, request):
         authors = User.objects.filter(following__user=request.user)
-        serializer = UserWithRecipesSerializer(authors, many=True, context={'request': request})
+        serializer = UserWithRecipesSerializer(
+            authors, many=True, context={'request': request}
+        )
         return Response(serializer.data)
 
     @action(detail=True, methods=['post', 'delete'])
     def subscribe(self, request, pk=None):
         author = User.objects.get(pk=pk)
         if request.method == 'POST':
-            Subscription.objects.get_or_create(user=request.user, author=author)
+            Subscription.objects.get_or_create(
+                user=request.user, author=author
+            )
             return Response(status=status.HTTP_201_CREATED)
         else:
-            Subscription.objects.filter(user=request.user, author=author).delete()
+            Subscription.objects.filter(
+                user=request.user, author=author
+            ).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
