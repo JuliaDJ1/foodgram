@@ -15,7 +15,6 @@ import { useEffect, useState } from "react";
 import { useParams, useHistory } from "react-router-dom";
 import MetaTags from "react-meta-tags";
 import { Icons } from "../../components";
-import cn from "classnames";
 
 const RecipeEdit = () => {
   const { id: recipeId } = useParams();
@@ -99,7 +98,7 @@ const RecipeEdit = () => {
       tags: selectedTags
     };
 
-    if (recipeFile && typeof recipeFile !== "string") {
+    if (recipeFile && typeof recipeFile === "string" && recipeFile.startsWith("data:image")) {
       data.image = recipeFile;
     }
 
