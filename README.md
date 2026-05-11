@@ -60,3 +60,7 @@ JuliaDJ1
 На сайте и администратора
 Email - admintest@yandex.ru
 Password - 123123
+Создан пользователь ivan@test.ru
+Создан пользователь maria@test.ru
+Создан пользователь alex@test.ru
+Пароль для всех testpass123
