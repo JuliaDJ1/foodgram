@@ -140,3 +140,4 @@ dmypy.json
 
 static/
 media/infra/.env
+backend/media/
