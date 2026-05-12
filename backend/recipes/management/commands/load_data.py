@@ -1,18 +1,21 @@
 import json
 import os
+
+from django.conf import settings
 from django.core.management.base import BaseCommand
+
 from recipes.models import Ingredient, Tag
 
 
 class Command(BaseCommand):
 
     def handle(self, *args, **options):
-        data_dir = os.path.join(
-            os.path.dirname(__file__), 'ingredients.json'
+        data_path = os.path.join(
+            settings.BASE_DIR.parent, 'data', 'ingredients.json'
         )
 
-        if os.path.exists(data_dir):
-            with open(data_dir, encoding='utf-8') as f:
+        if os.path.exists(data_path):
+            with open(data_path, encoding='utf-8') as f:
                 data = json.load(f)
             ingredients = [
                 Ingredient(
@@ -28,6 +31,10 @@ class Command(BaseCommand):
                 self.style.SUCCESS(
                     f'Загружено {len(ingredients)} ингредиентов'
                 )
+            )
+        else:
+            self.stdout.write(
+                self.style.ERROR(f'Файл не найден: {data_path}')
             )
 
         Tag.objects.get_or_create(name='Завтрак', slug='zavtrak')
