@@ -27,10 +27,29 @@ const SingleCard = ({ updateOrders }) => {
   }, [id]);
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      setNotificationPosition("40px");
-      setTimeout(() => setNotificationPosition("-100%"), 3000);
-    });
+    const url = window.location.href;
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(url).then(() => {
+        setNotificationPosition("40px");
+        setTimeout(() => setNotificationPosition("-100%"), 3000);
+      });
+    } else {
+      const textArea = document.createElement("textarea");
+      textArea.value = url;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand("copy");
+        setNotificationPosition("40px");
+        setTimeout(() => setNotificationPosition("-100%"), 3000);
+      } catch (err) {
+        console.error("Ошибка копирования:", err);
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   const handleDeleteRecipe = () => {

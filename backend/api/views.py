@@ -10,6 +10,8 @@ from recipes.models import (
     RecipeIngredient, ShoppingCart, Subscription, Tag
 )
 from users.models import User
+
+from .permissions import IsAuthorOrReadOnly
 from .serializers import (
     AvatarSerializer, IngredientSerializer,
     RecipeReadSerializer, RecipeWriteSerializer,
@@ -38,13 +40,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
         if name:
             queryset = queryset.filter(name__istartswith=name)
         return queryset
-
-
-class IsAuthorOrReadOnly(permissions.BasePermission):
-    def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return obj.author == request.user
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
