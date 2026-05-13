@@ -7,7 +7,7 @@ class Api {
 
   checkResponse(res) {
     if (res.ok) {
-      if (res.status === 204) return Promise.resolve({});
+      if (res.status === 204 || res.status === 201) return Promise.resolve({});
       return res.json();
     }
     return res.json().then(err => Promise.reject(err));
