@@ -10,7 +10,7 @@ import styles from "./styles.module.css";
 import { useFormWithValidation } from "../../utils";
 import { AuthContext } from "../../contexts";
 import { Redirect } from "react-router-dom";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import MetaTags from "react-meta-tags";
 import { ChangePasswordText } from "../../components/change-password-text";
 
@@ -18,11 +18,37 @@ const ChangePassword = ({ onPasswordChange, submitError, setSubmitError }) => {
   const { values, handleChange, errors, isValid, resetForm } =
     useFormWithValidation();
   const authContext = useContext(AuthContext);
+  const [validationError, setValidationError] = useState("");
 
   const onChange = (e) => {
     setSubmitError({ submitError: "" });
+    setValidationError("");
     handleChange(e);
   };
+
+  const validatePassword = (password) => {
+    if (password.length < 8) {
+      return "Пароль должен содержать минимум 8 символов";
+    }
+    if (/^\d+$/.test(password)) {
+      return "Пароль не может состоять только из цифр";
+    }
+    return "";
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const error = validatePassword(values.new_password || "");
+    if (error) {
+      setValidationError(error);
+      return;
+    }
+    onPasswordChange(values);
+  };
+
+  if (!authContext) {
+    return <Redirect to="/signin" />;
+  }
 
   return (
     <Main withBG asFlex>
@@ -37,10 +63,7 @@ const ChangePassword = ({ onPasswordChange, submitError, setSubmitError }) => {
         </MetaTags>
         <Form
           className={styles.form}
-          onSubmit={(e) => {
-            e.preventDefault();
-            onPasswordChange(values);
-          }}
+          onSubmit={handleSubmit}
         >
           <FormTitle>Изменить пароль</FormTitle>
           <Input
@@ -63,7 +86,7 @@ const ChangePassword = ({ onPasswordChange, submitError, setSubmitError }) => {
           />
           <ul className={styles.texts}>
             <li className={styles.text}>
-              <ChangePasswordText text="Ваш пароль не должен совпадать с вашим именем или другой персональной информацией или быть слишком похожим на неё" />
+              <ChangePasswordText text="Ваш пароль не должен совпадать с вашим именем или другой персональной информацией или быть слишком похожим на неё" />
             </li>
             <li className={styles.text}>
               <ChangePasswordText text="Ваш пароль должен содержать как минимум 8 символов" />
@@ -85,6 +108,11 @@ const ChangePassword = ({ onPasswordChange, submitError, setSubmitError }) => {
             submitError={submitError}
             onChange={onChange}
           />
+          {validationError && (
+            <p style={{ color: "red", fontSize: "14px", marginTop: "8px" }}>
+              {validationError}
+            </p>
+          )}
           <Button
             modifier="style_dark"
             type="submit"

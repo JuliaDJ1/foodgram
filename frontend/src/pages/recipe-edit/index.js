@@ -132,26 +132,18 @@ const RecipeEdit = () => {
             handleChange={handleTagsChange}
           />
 
-          <div>
+          <div style={{ position: "relative" }}>
             <Input
               label="Ингредиенты"
               placeholder="Начните вводить название"
               value={ingredientValue.name}
               onChange={(e) => {
-                setIngredientValue({ ...ingredientValue, name: e.target.value });
+                setIngredientValue({ ...ingredientValue, name: e.target.value, id: null });
                 setShowIngredients(true);
               }}
               onFocus={() => setShowIngredients(true)}
+              onBlur={() => setTimeout(() => setShowIngredients(false), 200)}
             />
-            <Input
-              placeholder="Количество"
-              value={ingredientValue.amount}
-              type="number"
-              onChange={(e) => setIngredientValue({ ...ingredientValue, amount: e.target.value })}
-            />
-            {ingredientValue.measurement_unit && (
-              <span>{ingredientValue.measurement_unit}</span>
-            )}
             {showIngredients && ingredients.length > 0 && (
               <IngredientsSearch
                 ingredients={ingredients}
@@ -161,6 +153,15 @@ const RecipeEdit = () => {
                   setShowIngredients(false);
                 }}
               />
+            )}
+            <Input
+              placeholder="Количество"
+              value={ingredientValue.amount}
+              type="number"
+              onChange={(e) => setIngredientValue({ ...ingredientValue, amount: e.target.value })}
+            />
+            {ingredientValue.measurement_unit && (
+              <span>{ingredientValue.measurement_unit}</span>
             )}
             <div onClick={handleAddIngredient} style={{ cursor: "pointer", marginTop: "8px" }}>
               Добавить ингредиент
