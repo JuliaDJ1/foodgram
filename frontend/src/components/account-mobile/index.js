@@ -14,7 +14,7 @@ const AccountData = ({ userContext, setIsChangeAvatarOpen }) => {
       <div
         className={styles.accountAvatar}
         style={{
-          "background-image": `url(${userContext.avatar || DefaultImage})`,
+          backgroundImage: `url(${userContext.avatar || DefaultImage})`,
         }}
         onClick={() => {
           setIsChangeAvatarOpen(true);
@@ -34,26 +34,38 @@ const AccountMobile = ({ onSignOut }) => {
   const authContext = useContext(AuthContext);
   const userContext = useContext(UserContext);
   const [isChangeAvatarOpen, setIsChangeAvatarOpen] = useState(false);
-  const [newAvatar, setNewAvatar] = useState("");
+  const [newAvatar, setNewAvatar] = useState(undefined);
 
   const handleSaveAvatar = () => {
-    if (newAvatar) {
-      api
-        .changeAvatar({ file: newAvatar })
-        .then(({ avatar }) => {
-          userContext.avatar = avatar;
-          setIsChangeAvatarOpen(false);
-        })
-        .catch((err) => console.log(err));
-    } else {
-      api
-        .deleteAvatar()
-        .then(() => {
-          userContext.avatar = undefined;
-          setIsChangeAvatarOpen(false);
-        })
-        .catch((err) => console.log(err));
+    if (newAvatar === undefined) {
+      setIsChangeAvatarOpen(false);
+      return;
     }
+    if (newAvatar === null) {
+      api.deleteAvatar()
+        .then(() => {
+          userContext.avatar = null;
+          setIsChangeAvatarOpen(false);
+          setNewAvatar(undefined);
+          window.location.reload();
+        })
+        .catch((err) => {
+          console.error(err);
+          alert("Не удалось удалить аватар");
+        });
+      return;
+    }
+    api.changeAvatar(newAvatar)
+      .then((data) => {
+        userContext.avatar = data.avatar;
+        setIsChangeAvatarOpen(false);
+        setNewAvatar(undefined);
+        window.location.reload();
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("Не удалось сохранить аватар");
+      });
   };
 
   if (!authContext) {
@@ -70,7 +82,7 @@ const AccountMobile = ({ onSignOut }) => {
         <ul className={styles.accountLinks}>
           {UserMenu.map((menuItem) => {
             return (
-              <li className={styles.accountLinkItem}>
+              <li key={menuItem.href} className={styles.accountLinkItem}>
                 <LinkComponent
                   className={styles.accountLink}
                   href={menuItem.href}
@@ -96,9 +108,11 @@ const AccountMobile = ({ onSignOut }) => {
       </div>
       {isChangeAvatarOpen && (
         <AvatarPopup
-          info="test"
           avatar={userContext.avatar}
-          onClose={() => setIsChangeAvatarOpen(false)}
+          onClose={() => {
+            setIsChangeAvatarOpen(false);
+            setNewAvatar(undefined);
+          }}
           onSubmit={handleSaveAvatar}
           onChange={setNewAvatar}
         />
