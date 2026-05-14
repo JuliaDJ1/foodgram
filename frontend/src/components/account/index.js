@@ -25,19 +25,32 @@ const Account = ({ onSignOut, orders }) => {
   const authContext = useContext(AuthContext);
   const userContext = useContext(UserContext);
   const [isChangeAvatarOpen, setIsChangeAvatarOpen] = useState(false);
-  const [newAvatar, setNewAvatar] = useState(null);
+  const [newAvatar, setNewAvatar] = useState(undefined);
 
   const handleSaveAvatar = () => {
-    if (!newAvatar) {
+    if (newAvatar === undefined) {
       setIsChangeAvatarOpen(false);
       return;
     }
-
+    if (newAvatar === null) {
+      api.deleteAvatar()
+        .then(() => {
+          userContext.avatar = null;
+          setIsChangeAvatarOpen(false);
+          setNewAvatar(undefined);
+          window.location.reload();
+        })
+        .catch((err) => {
+          console.error(err);
+          alert("Не удалось удалить аватар");
+        });
+      return;
+    }
     api.changeAvatar(newAvatar)
       .then((data) => {
         userContext.avatar = data.avatar;
         setIsChangeAvatarOpen(false);
-        setNewAvatar(null);
+        setNewAvatar(undefined);
         window.location.reload();
       })
       .catch((err) => {
@@ -75,7 +88,6 @@ const Account = ({ onSignOut, orders }) => {
           userContext={userContext}
           setIsChangeAvatarOpen={setIsChangeAvatarOpen}
         />
-
         <div className={styles.accountControls}>
           <ul className={styles.accountLinks}>
             {UserMenu.map((menuItem) => {
@@ -105,13 +117,12 @@ const Account = ({ onSignOut, orders }) => {
           </ul>
         </div>
       </div>
-
       {isChangeAvatarOpen && (
         <AvatarPopup
           avatar={userContext.avatar}
           onClose={() => {
             setIsChangeAvatarOpen(false);
-            setNewAvatar(null);
+            setNewAvatar(undefined);
           }}
           onSubmit={handleSaveAvatar}
           onChange={setNewAvatar}

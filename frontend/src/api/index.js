@@ -236,6 +236,14 @@ class Api {
       body: formData,
     }).then(this.checkResponse);
   }
+
+  deleteAvatar = () => {
+    const token = localStorage.getItem("token");
+    return fetch("/api/users/me/avatar/", {
+      method: "DELETE",
+      headers: { ...this._headers, authorization: `Token ${token}` },
+    }).then(this.checkResponse);
+  }
 }
 
 const api = new Api();
