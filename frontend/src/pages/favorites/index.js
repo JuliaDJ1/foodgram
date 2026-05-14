@@ -30,6 +30,13 @@ const Favorites = ({ updateOrders }) => {
     getRecipes()
   }, [])
 
+  const handleLikeOnFavorites = ({ id, toLike }) => {
+    handleLike({ id, toLike })
+    if (!toLike) {
+      setRecipes(prev => prev.filter(recipe => recipe.id !== id))
+    }
+  }
+
   return (
     <Main>
       <Container>
@@ -44,7 +51,7 @@ const Favorites = ({ updateOrders }) => {
                 key={card.id}
                 {...card}
                 updateOrders={updateOrders}
-                handleLike={handleLike}
+                handleLike={handleLikeOnFavorites}
                 handleAddToCart={handleAddToCart}
               />
             ))}
