@@ -56,6 +56,15 @@ class Api {
     }).then(this.checkResponse);
   }
 
+  changePassword = ({ new_password, current_password }) => {
+    const token = localStorage.getItem("token");
+    return fetch("/api/users/set_password/", {
+      method: "POST",
+      headers: { ...this._headers, authorization: `Token ${token}` },
+      body: JSON.stringify({ new_password, current_password }),
+    }).then(this.checkResponse);
+  }
+
   getRecipes = (params = {}) => {
     const queryParams = {
       page: params.page || 1,

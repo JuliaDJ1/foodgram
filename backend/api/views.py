@@ -10,7 +10,6 @@ from recipes.models import (
     RecipeIngredient, ShoppingCart, Subscription, Tag
 )
 from users.models import User
-
 from .permissions import IsAuthorOrReadOnly
 from .serializers import (
     AvatarSerializer, IngredientSerializer,
