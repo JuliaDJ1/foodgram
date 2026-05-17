@@ -62,11 +62,21 @@ const SingleCard = ({ updateOrders }) => {
     name,
     ingredients,
     text,
+    is_favorited,
     is_in_shopping_cart
   } = recipe || {};
 
   const isSubscribed = author.is_subscribed || false;
   const isOwner = authContext && userContext && userContext.id === author.id;
+
+  const handleLike = () => {
+    if (!recipe) return;
+    const toLike = !is_favorited;
+    const action = toLike ? api.addToFavorites : api.removeFromFavorites;
+    action({ id }).then(() => {
+      setRecipe(prev => ({ ...prev, is_favorited: toLike }));
+    });
+  };
 
   return (
     <Main>
@@ -81,13 +91,26 @@ const SingleCard = ({ updateOrders }) => {
           <div className={styles["single-card__info"]}>
             <div className={styles["single-card__header-info"]}>
               <h1 className={styles["single-card__title"]}>{name}</h1>
-              <Button
-                modifier="style_none"
-                clickHandler={handleCopyLink}
-                className={styles["single-card__save-button"]}
-              >
-                <Icons.CopyLinkIcon />
-              </Button>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                {authContext && (
+                  <Button
+                    modifier="style_none"
+                    clickHandler={handleLike}
+                    className={cn(styles["single-card__save-button"], {
+                      [styles["single-card__save-button_active"]]: is_favorited
+                    })}
+                  >
+                    <Icons.LikeIcon />
+                  </Button>
+                )}
+                <Button
+                  modifier="style_none"
+                  clickHandler={handleCopyLink}
+                  className={styles["single-card__save-button"]}
+                >
+                  <Icons.CopyLinkIcon />
+                </Button>
+              </div>
             </div>
 
             {isOwner && (
@@ -122,33 +145,24 @@ const SingleCard = ({ updateOrders }) => {
                     href={`/user/${author.id}`}
                     className={styles["single-card__link"]}
                   />
+                  {authContext && !isOwner && (
+                    <Button
+                      modifier={isSubscribed ? "style_dark" : "style_light"}
+                      clickHandler={() => {
+                        setRecipe(prev => ({
+                          ...prev,
+                          author: { ...prev.author, is_subscribed: !isSubscribed }
+                        }));
+                        handleSubscribe({
+                          author_id: author.id,
+                          toSubscribe: !isSubscribed
+                        });
+                      }}
+                    >
+                      {isSubscribed ? "Отписаться" : "Подписаться на автора"}
+                    </Button>
+                  )}
                 </div>
-
-                {authContext && !isOwner && (
-                  <button
-                    style={{
-                      padding: "12px 24px",
-                      fontSize: "16px",
-                      backgroundColor: isSubscribed ? "#000" : "#fff",
-                      color: isSubscribed ? "#fff" : "#000",
-                      border: "2px solid #000",
-                      borderRadius: "8px",
-                      cursor: "pointer"
-                    }}
-                    onClick={() => {
-                      setRecipe(prev => ({
-                        ...prev,
-                        author: { ...prev.author, is_subscribed: !isSubscribed }
-                      }));
-                      handleSubscribe({
-                        author_id: author.id,
-                        toSubscribe: !isSubscribed
-                      });
-                    }}
-                  >
-                    {isSubscribed ? "Отписаться" : "Подписаться на автора"}
-                  </button>
-                )}
               </div>
             </div>
 
