@@ -156,17 +156,21 @@ const SingleCard = ({ updateOrders }) => {
                   className={styles["single-card__link"]}
                 />
                 {authContext && !isOwner && (
-                  <Button
-                    modifier={isSubscribed ? "style_dark" : "style_light"}
-                    className={cn(
-                      styles["single-card__button"],
-                      styles["single-card__button_add-user"]
-                    )}
-                    clickHandler={handleSubscribe}
-                    style={{ marginLeft: "12px" }}
-                  >
-                    <Icons.AddUser />
-                  </Button>
+                  <div style={{ marginLeft: "12px" }}>
+                    <Button
+                      modifier={isSubscribed ? "style_dark" : "style_light"}
+                      className={cn(
+                        styles["single-card__button"],
+                        styles["single-card__button_add-user"],
+                        {
+                          [styles["single-card__button_add-user_active"]]: isSubscribed
+                        }
+                      )}
+                      clickHandler={handleSubscribe}
+                    >
+                      <Icons.AddUser />
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
