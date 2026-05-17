@@ -103,6 +103,13 @@ const SingleCard = ({ updateOrders }) => {
             <div className={styles["single-card__header-info"]}>
               <h1 className={styles["single-card__title"]}>{name}</h1>
               <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <Button
+                  modifier="style_none"
+                  clickHandler={handleCopyLink}
+                  className={styles["single-card__save-button"]}
+                >
+                  <Icons.CopyLinkIcon />
+                </Button>
                 {authContext && (
                   <Button
                     modifier="style_none"
@@ -114,13 +121,6 @@ const SingleCard = ({ updateOrders }) => {
                     <Icons.LikeIcon />
                   </Button>
                 )}
-                <Button
-                  modifier="style_none"
-                  clickHandler={handleCopyLink}
-                  className={styles["single-card__save-button"]}
-                >
-                  <Icons.CopyLinkIcon />
-                </Button>
               </div>
             </div>
 
@@ -157,7 +157,7 @@ const SingleCard = ({ updateOrders }) => {
                 />
                 {authContext && !isOwner && (
                   <Button
-                    modifier={isSubscribed ? "style_dark" : "style_light"}
+                    modifier="style_dark"
                     className={cn(
                       styles["single-card__button"],
                       styles["single-card__button_add-user"],
