@@ -41,7 +41,10 @@ const UserPage = ({ updateOrders }) => {
   const authContext = useContext(AuthContext);
 
   const getRecipes = ({ page = 1, tags }) => {
-    api.getRecipes({ page, author: id, tags }).then((res) => {
+    const activeTags = tags
+      ? tags.filter(t => t.value).map(t => t.id)
+      : undefined;
+    api.getRecipes({ page, author: id, tags: activeTags }).then((res) => {
       const { results, count } = res;
       setRecipes(results);
       setRecipesCount(count);
