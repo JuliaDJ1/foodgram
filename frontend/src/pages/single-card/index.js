@@ -14,7 +14,7 @@ import { Notification } from "../../components/notification";
 
 const SingleCard = ({ updateOrders }) => {
   const [notificationPosition, setNotificationPosition] = useState("-100%");
-  const { recipe, setRecipe, handleAddToCart, handleSubscribe } = useRecipe();
+  const { recipe, setRecipe, handleAddToCart } = useRecipe();
   const authContext = useContext(AuthContext);
   const userContext = useContext(UserContext);
   const { id } = useParams();
@@ -54,6 +54,26 @@ const SingleCard = ({ updateOrders }) => {
     }
   };
 
+  const handleLike = () => {
+    if (!recipe) return;
+    const toLike = !recipe.is_favorited;
+    const action = toLike ? api.addToFavorites : api.removeFromFavorites;
+    action({ id }).then(() => {
+      setRecipe(prev => ({ ...prev, is_favorited: toLike }));
+    });
+  };
+
+  const handleSubscribe = () => {
+    const isSubscribed = recipe?.author?.is_subscribed || false;
+    const action = isSubscribed ? api.unsubscribe : api.subscribe;
+    action({ id: recipe?.author?.id }).then(() => {
+      setRecipe(prev => ({
+        ...prev,
+        author: { ...prev.author, is_subscribed: !isSubscribed }
+      }));
+    });
+  };
+
   const {
     author = {},
     image,
@@ -68,15 +88,6 @@ const SingleCard = ({ updateOrders }) => {
 
   const isSubscribed = author.is_subscribed || false;
   const isOwner = authContext && userContext && userContext.id === author.id;
-
-  const handleLike = () => {
-    if (!recipe) return;
-    const toLike = !is_favorited;
-    const action = toLike ? api.addToFavorites : api.removeFromFavorites;
-    action({ id }).then(() => {
-      setRecipe(prev => ({ ...prev, is_favorited: toLike }));
-    });
-  };
 
   return (
     <Main>
@@ -134,35 +145,31 @@ const SingleCard = ({ updateOrders }) => {
               <TagsContainer tags={tags} />
               <p className={styles["single-card__text"]}>{cooking_time} мин.</p>
 
-              <div className={styles["single-card__author-block"]}>
-                <div className={styles["single-card__text_with_link"]}>
-                  <div
-                    className={styles["single-card__user-avatar"]}
-                    style={{ backgroundImage: `url(${author.avatar || DefaultImage})` }}
-                  />
-                  <LinkComponent
-                    title={`${author.first_name} ${author.last_name}`}
-                    href={`/user/${author.id}`}
-                    className={styles["single-card__link"]}
-                  />
-                  {authContext && !isOwner && (
-                    <Button
-                      modifier={isSubscribed ? "style_dark" : "style_light"}
-                      clickHandler={() => {
-                        setRecipe(prev => ({
-                          ...prev,
-                          author: { ...prev.author, is_subscribed: !isSubscribed }
-                        }));
-                        handleSubscribe({
-                          author_id: author.id,
-                          toSubscribe: !isSubscribed
-                        });
-                      }}
-                    >
-                      {isSubscribed ? "Отписаться" : "Подписаться на автора"}
-                    </Button>
-                  )}
-                </div>
+              <div className={styles["single-card__text_with_link"]}>
+                <div
+                  className={styles["single-card__user-avatar"]}
+                  style={{ backgroundImage: `url(${author.avatar || DefaultImage})` }}
+                />
+                <LinkComponent
+                  title={`${author.first_name} ${author.last_name}`}
+                  href={`/user/${author.id}`}
+                  className={styles["single-card__link"]}
+                />
+                {authContext && !isOwner && (
+                  <Button
+                    modifier={isSubscribed ? "style_dark" : "style_light"}
+                    className={cn(
+                      styles["single-card__button"],
+                      styles["single-card__button_add-user"],
+                      {
+                        [styles["single-card__button_add-user_active"]]: isSubscribed
+                      }
+                    )}
+                    clickHandler={handleSubscribe}
+                  >
+                    <Icons.AddUser />
+                  </Button>
+                )}
               </div>
             </div>
 
